@@ -1,4 +1,4 @@
-﻿/* 数据获取层
+/* 数据获取层
  * 行情 / 财务 / 历史 K 线：东方财富公开接口（均支持跨域）
  */
 const API = (() => {
@@ -9,20 +9,23 @@ const API = (() => {
 
   const cache = new Map();
 
-  /* 会话缓存：5 分钟内刷新页面直接用上次的结果，不重打接口 */
+  /* 会话缓存：默认 5 分钟内刷新页面直接用上次的结果，不重打接口
+   * 财务、K 线这类一天只变一次的数据可以传更长的 ttl
+   */
   const TTL = 5 * 60 * 1000;
-  function ssGet(key) {
+  function ssGet(key, ttl = TTL) {
     try {
       const s = sessionStorage.getItem(key);
       if (!s) return null;
       const o = JSON.parse(s);
-      if (!o || Date.now() - o.at > TTL) { sessionStorage.removeItem(key); return null; }
+      if (!o || Date.now() - o.at > ttl) { sessionStorage.removeItem(key); return null; }
       return o.v;
     } catch (e) { return null; }
   }
   function ssSet(key, v) {
     try { sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), v })); } catch (e) { }
   }
+  const LONG_TTL = 2 * 60 * 60 * 1000; // 2 小时：财报 / 分红 / K 线
 
   async function getJSON(url, timeout = 11000) {
     const ctl = new AbortController();
@@ -81,6 +84,9 @@ const API = (() => {
   async function kline(secid, days = 250) {
     const key = `k:${secid}`;
     if (cache.has(key)) return cache.get(key);
+    /* 反复进出详情页不必重新拉 250 天日线 */
+    const savedKl = ssGet('api:' + key, LONG_TTL);
+    if (savedKl) { cache.set(key, savedKl); return savedKl; }
     const id = resolveSecid(secid);
     const url = `${KLINE}?secid=${id}&klt=101&fqt=1&lmt=${days}&end=20500101` +
       `&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58&_=${Date.now()}`;
@@ -103,6 +109,7 @@ const API = (() => {
           };
         }).filter(k => Number.isFinite(k.close) && k.close > 0);
         cache.set(key, list);
+        ssSet('api:' + key, list);
         return list;
       } catch (e) {
         lastErr = e;
@@ -116,6 +123,8 @@ const API = (() => {
   async function financials(secid) {
     const key = `f:${secid}`;
     if (cache.has(key)) return cache.get(key);
+    const savedFin = ssGet('api:' + key, LONG_TTL);
+    if (savedFin) { cache.set(key, savedFin); return savedFin; }
     const [m, code] = secid.split('.');
     const suffix = m === '1' ? 'SH' : 'SZ';
     const filter = encodeURIComponent(`(SECUCODE="${code}.${suffix}")`);
@@ -141,6 +150,7 @@ const API = (() => {
       netProfitYoY: num(row.PARENTNETPROFITTZ)
     };
     cache.set(key, out);
+    ssSet('api:' + key, out);
     return out;
   }
 

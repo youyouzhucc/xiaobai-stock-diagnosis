@@ -158,9 +158,16 @@ const scoreColor = s => s === null ? 'var(--text-weak)' : s >= 80 ? 'var(--green
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ---------- 每日综合分快照（每天 12:05 由 Actions 算好，全天复用） ---------- */
+/* 快照一天只有一版，所以用日期做版本号：同一天内浏览器直接吃缓存，跨天自动换新 */
+function dayTag() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
+}
+
 async function loadPreScores() {
   try {
-    const res = await fetch('data/scores.json?_=' + Date.now(), { cache: 'no-store' });
+    const res = await fetch(`data/scores.json?d=${dayTag()}`);
     if (!res.ok) return null;
     return await res.json();
   } catch (e) { return null; }
@@ -234,7 +241,12 @@ async function init() {
   $('list').innerHTML = '<div class="empty">正在获取实时行情…</div>';
 
   try {
-    const quotes = await API.quotes(POOL.map(p => p.secid));
+    /* 行情和当日分数快照同时发，谁也不用等谁：总耗时从「两次往返之和」降到「较长的那一次」 */
+    const [quotes, pre] = await Promise.all([
+      API.quotes(POOL.map(p => p.secid)),
+      loadPreScores()
+    ]);
+
     const bySecid = {};
     quotes.forEach(q => { bySecid[q.secid] = q; });
 
@@ -245,8 +257,7 @@ async function init() {
 
     state.total = state.items.length;
 
-    /* 先吃当天的分数快照：有快照就直接满血显示，不再逐只现算 */
-    const pre = await loadPreScores();
+    /* 有快照就直接满血显示，不再逐只现算 */
     const hit = applyPreScores(pre);
 
     renderList();
@@ -259,6 +270,10 @@ async function init() {
   API.kline('INDEX', 250)
     .then(k => { state.indexKl = k; if (state.current) renderChart(state.range); })
     .catch(() => { });
+
+  /* 空闲时把图表库下好，用户点进详情时基本已经就绪，又不占首屏带宽 */
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
+  idle(() => ensureECharts().catch(() => { }));
 
   handleQuery();
 }
@@ -751,7 +766,8 @@ async function kickMarketRank() {
   if (state.rankLoading) return;
   state.rankLoading = true;
   try {
-    const res = await fetch('data/ranks.json?_=' + Date.now(), { cache: 'no-store' });
+    /* 排名表每天一版，用日期做版本号，同一天内不重复下载这 50KB */
+    const res = await fetch(`data/ranks.json?d=${dayTag()}`);
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const j = await res.json();
     const n = j.n || 0, maps = j.ranks || {};
@@ -1132,6 +1148,22 @@ function renderDetail(it) {
   syncVersion();
 }
 
+/* ---------- 图表库（按需加载，不占首屏） ---------- */
+let echartsJob = null;
+function ensureECharts() {
+  if (window.echarts) return Promise.resolve(window.echarts);
+  if (echartsJob) return echartsJob;
+  echartsJob = new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js';
+    s.async = true;
+    s.onload = () => window.echarts ? resolve(window.echarts) : reject(new Error('图表库为空'));
+    s.onerror = () => { echartsJob = null; reject(new Error('图表库加载失败')); };
+    document.head.appendChild(s);
+  });
+  return echartsJob;
+}
+
 /* ---------- 图表 ---------- */
 function setRange(range) {
   state.range = range;
@@ -1158,7 +1190,13 @@ function renderChart(range) {
   }
   if (typeof echarts === 'undefined') {
     box.className = 'chart-empty';
-    box.textContent = '图表库加载失败，请刷新页面';
+    box.textContent = '图表加载中…';
+    ensureECharts()
+      .then(() => { if (state.current === it) renderChart(state.range); })
+      .catch(() => {
+        const b = $('trendChart');
+        if (b) { b.className = 'chart-empty'; b.textContent = '图表库加载失败，请检查网络后刷新'; }
+      });
     return;
   }
 

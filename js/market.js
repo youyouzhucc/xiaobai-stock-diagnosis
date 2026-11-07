@@ -128,7 +128,10 @@ function loadScores() {
 /* 把当天 12:05 生成的分数快照并进来，精选池的 30 只在这里也有分 */
 async function mergeSnapshot() {
   try {
-    const res = await fetch('data/scores.json?_=' + Date.now(), { cache: 'no-store' });
+    /* 一天一版，按日期取，同一天内直接命中浏览器缓存 */
+    const d = new Date();
+    const tag = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+    const res = await fetch(`data/scores.json?d=${tag}`);
     if (!res.ok) return;
     const j = await res.json();
     Object.keys(j.items || {}).forEach(code => {
