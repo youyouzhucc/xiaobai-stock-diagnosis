@@ -73,5 +73,51 @@ const UI = (() => {
     return `<div class="empty">${text}</div>`;
   }
 
-  return { esc, f1, f2, pct, cap, dirCls, card, title, kv, kvGrid, bar, tag, empty };
+  /* ---------- 交易门槛 ----------
+   * A 股只有创业板、科创板（和北交所）需要单独开通权限，沪深主板开户即可买。
+   * 门槛按交易所现行规则（2026 年核对）：创业板 10 万 / 2 年；科创板、北交所 50 万 / 2 年。
+   * 这里只做提示，实际审核以券商为准。
+   */
+  const BOARDS = {
+    gem: { key: 'gem', name: '创业板', need: '20 个交易日日均资产 ≥ 10 万，且股票交易满 2 年' },
+    star: { key: 'star', name: '科创板', need: '20 个交易日日均资产 ≥ 50 万，且股票交易满 2 年' },
+    bse: { key: 'bse', name: '北交所', need: '20 个交易日日均资产 ≥ 50 万，且股票交易满 2 年' }
+  };
+
+  function boardOf(code) {
+    const c = String(code == null ? '' : code);
+    if (/^(688|689)/.test(c)) return BOARDS.star;
+    if (/^(300|301)/.test(c)) return BOARDS.gem;
+    if (/^[48]/.test(c)) return BOARDS.bse;
+    return null;   // 主板：无门槛
+  }
+
+  /* 用户自己勾的权限，只存浏览器本地，不上传任何地方。
+     内存里留一份，避免列表每张卡片都去读一次 localStorage。 */
+  let permCache = null;
+  function perms() {
+    if (permCache) return permCache;
+    try { permCache = JSON.parse(localStorage.getItem('xb.perms') || '{}') || {}; }
+    catch (e) { permCache = {}; }
+    return permCache;
+  }
+  function setPerm(key, on) {
+    const p = perms();
+    if (on) p[key] = 1; else delete p[key];
+    try { localStorage.setItem('xb.perms', JSON.stringify(p)); } catch (e) { /* 隐私模式下写不进去，忽略 */ }
+  }
+  function canBuy(code) {
+    const b = boardOf(code);
+    return !b || !!perms()[b.key];
+  }
+
+  /* 卡片上的板块徽章：没开通时显眼，开通后淡下去 */
+  function badge(code) {
+    const b = boardOf(code);
+    if (!b) return '';
+    const on = !!perms()[b.key];
+    return `<i class="bd ${b.key}${on ? ' on' : ''}">${b.name}${on ? '' : '·需开通'}</i>`;
+  }
+
+  return { esc, f1, f2, pct, cap, dirCls, card, title, kv, kvGrid, bar, tag, empty, BOARDS, boardOf, perms, setPerm, canBuy, badge };
 })();

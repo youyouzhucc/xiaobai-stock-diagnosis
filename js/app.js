@@ -143,7 +143,8 @@ const state = {
   order: null,
   fullRebuild: true,
   rankIndex: null,
-  rankLoading: false
+  rankLoading: false,
+  onlyMine: false
 };
 
 /* ---------- 工具 ---------- */
@@ -206,6 +207,18 @@ function metricText(id, s) {
   return `${m.label} ${v}`;
 }
 
+/* 主题说明：原来分「看的是什么」和「别误读成什么」两行，太占地方，
+ * 合并成一句 —— 说清筛什么，顺带把最容易误解的地方说掉。
+ */
+const BOARD_SUB = {
+  cheap: '市盈率最低的一批，便宜也可能是这门生意在走下坡',
+  bluechip: '市值过千亿、市盈率 20 倍以内，稳，但涨得也慢',
+  drop60: '两个月跌超两成，跌得多不代表会反弹',
+  rise60: '两个月涨超两成，涨得猛可能是情绪推的',
+  volume: '量比 2 以上，放量方向不一定，可能是消息也可能是资金',
+  cold: '换手不到 1%，想买容易，想卖可能没人接'
+};
+
 /* 主题色调：只分两类 —— 偏机会的用绿、偏风险的用红，其余保持中性。
  * 不做 hover 变色，也不用六种颜色，避免首页看起来花。
  */
@@ -220,10 +233,12 @@ const BOARD_TONE = {
 
 function boardHTML(b) {
   const tone = BOARD_TONE[b.id] || '';
+  const sub = BOARD_SUB[b.id] || b.note || '';
   const rows = (b.stocks || []).map(s => `
     <button class="bc-row" onclick="App.openByCode('${s.code}')">
       <span class="bc-name">${esc(s.name)}</span>
       <span class="bc-code">${s.code}</span>
+      ${UI.badge(s.code)}
       <span class="bc-metric">${metricText(b.id, s)}</span>
     </button>`).join('');
   return `<div class="bcard${tone ? ' ' + tone : ''}">
@@ -231,9 +246,8 @@ function boardHTML(b) {
       <span class="bc-title">${esc(b.title)}</span>
       <a class="bc-all" href="market.html?theme=${encodeURIComponent(b.id)}">共 ${b.count} 只 ›</a>
     </div>
-    <div class="bc-sub">${esc(b.note || '')}</div>
+    <div class="bc-sub">${esc(sub)}</div>
     <div class="bc-list">${rows}</div>
-    <div class="bc-warn">${esc(b.warn || '')}</div>
   </div>`;
 }
 
@@ -321,7 +335,7 @@ async function init() {
   if (gb) gb.addEventListener('click', openGuide);
   if (gx) gx.addEventListener('click', closeGuide);
   if (gm) gm.addEventListener('click', e => { if (e.target === gm) closeGuide(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGuide(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeGuide(); closePerm(); } });
 
   $('list').innerHTML = '<div class="empty">正在获取实时行情…</div>';
 
@@ -461,7 +475,61 @@ function renderFilters() {
       <div class="dw-arrow"></div>
       <div class="dw-menu">${items}</div>
     </div>`;
-  }).join('');
+  }).join('') + permControls();
+}
+
+/* 权限相关的两个控件，跟在筛选栏末尾 */
+function permControls() {
+  const p = UI.perms();
+  const n = (p.gem ? 1 : 0) + (p.star ? 1 : 0);
+  return `<button class="perm-btn${n ? ' on' : ''}" onclick="App.openPerm()">我的权限${n ? ' · 已开 ' + n + ' 项' : ''}</button>
+    <button class="only-mine${state.onlyMine ? ' on' : ''}" onclick="App.toggleOnlyMine()">只看我能买的</button>`;
+}
+
+function openPerm() {
+  closePerm();
+  const p = UI.perms();
+  const mask = document.createElement('div');
+  mask.className = 'perm-mask';
+  mask.innerHTML = `<div class="perm-card">
+    <div class="perm-h">我的交易权限</div>
+    <div class="perm-d">勾上你券商里已经开通的，页面会把买不了的那几只标出来。这些只存在你自己的浏览器里，不会上传。</div>
+    <label class="perm-row"><input type="checkbox" data-k="gem"${p.gem ? ' checked' : ''}> 已开通创业板（10 万 / 2 年）</label>
+    <label class="perm-row"><input type="checkbox" data-k="star"${p.star ? ' checked' : ''}> 已开通科创板（50 万 / 2 年）</label>
+    <div class="perm-tip">不确定开没开？打开券商 App →「我的」→ 业务办理里搜「创业板」「科创板」，搜得到就是还没开。</div>
+    <button class="perm-ok" onclick="App.applyPerm()">保存</button>
+  </div>`;
+  mask.addEventListener('click', e => { if (e.target === mask) closePerm(); });
+  document.body.appendChild(mask);
+}
+
+function closePerm() {
+  const m = document.querySelector('.perm-mask');
+  if (m) m.remove();
+}
+
+function applyPerm() {
+  document.querySelectorAll('.perm-mask input[data-k]').forEach(i => UI.setPerm(i.dataset.k, i.checked));
+  closePerm();
+  renderFilters();
+  state.fullRebuild = true;
+  renderList();
+  // 详情页开着就只换那条提示，不动图表和滚动位置
+  if (state.current) {
+    const old = document.querySelector('#detail-body .d-gate');
+    if (old) {
+      const box = document.createElement('div');
+      box.innerHTML = gateHTML(state.current.quote.code);
+      if (box.firstElementChild) old.replaceWith(box.firstElementChild);
+    }
+  }
+}
+
+function toggleOnlyMine() {
+  state.onlyMine = !state.onlyMine;
+  renderFilters();
+  state.fullRebuild = true;
+  renderList();
 }
 
 function toggleDw(e, el) {
@@ -568,6 +636,7 @@ async function diagnoseQueue() {
 /* 顺序只在首屏定一次（按当日涨跌幅），之后体检分数陆续算出来也不重排，
    避免卡片反复换位 */
 function fixedVisible() {
+  if (!state.items.length) return [];   // 数据还没回来就别锁顺序，否则锁成空的
   if (!state.order) {
     state.order = state.items
       .slice()
@@ -588,6 +657,9 @@ function matchFilters(it) {
   }
   const f = state.filters;
   const s = it.diag && it.diag.stats;
+
+  // 只看我能买的：主板永远可买，创业板/科创板看用户自己勾了没有
+  if (state.onlyMine && !UI.canBuy(q.code)) return false;
 
   // 股票类型：按行业归类，不依赖财报，体检中也能筛
   if (f.type && typeOf(q.industry) !== f.type) return false;
@@ -760,6 +832,7 @@ function cardHTML(it) {
         <span class="si-name">${esc(q.name)}</span>
         <span class="si-code">${q.code}</span>
         <span class="si-ind">${esc(q.industry)}</span>
+        ${UI.badge(q.code)}
       </div>
       <div class="si-right">
         <div class="si-price">${f2(q.price)}</div>
@@ -1063,6 +1136,17 @@ function heatConcl(q) {
   return '换手 ' + f1(t) + '% · 成交清淡';
 }
 
+/* 详情页「能不能买」：只有创业板 / 科创板 / 北交所需要单独开通权限，主板不写 */
+function gateHTML(code) {
+  const b = UI.boardOf(code);
+  if (!b) return '';
+  if (UI.perms()[b.key]) {
+    return `<div class="d-gate on"><b>${b.name}股票</b>　你已标记为已开通，可以直接买。</div>`;
+  }
+  return `<div class="d-gate"><b>${b.name}股票，买入前要先开通权限</b>　${b.need}。<br>
+    不确定开没开？打开券商 App，在「我的 → 业务办理」里搜「${b.name}」。</div>`;
+}
+
 function renderDetail(it) {
   const q = it.quote, d = it.diag, s = d && d.stats, fin = it.fin;
   const divv = it.dividend;
@@ -1130,6 +1214,7 @@ function renderDetail(it) {
     </div>
 
     <div class="verdict">${verdictOf(it)}</div>
+    ${gateHTML(q.code)}
   </div>
 
   <div class="d-cols">
@@ -1498,6 +1583,6 @@ document.addEventListener('click', e => {
 
 window.addEventListener('resize', () => { if (state.chart) state.chart.resize(); });
 
-window.App = { openDetail, openByCode, goHome, setRange, toggleDw, pick };
+window.App = { openDetail, openByCode, goHome, setRange, toggleDw, pick, openPerm, closePerm, applyPerm, toggleOnlyMine };
 
 init();

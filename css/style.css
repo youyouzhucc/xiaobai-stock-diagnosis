@@ -212,12 +212,11 @@ body {
     display: flex; flex-direction: column;
     background: var(--card); border-radius: 12px; padding: 12px 12px 10px;
     box-shadow: 0 2px 10px rgba(60, 55, 50, .045);
-    /* 底部预留 2px，三种卡片高度一致；中性的留空，不画色条 */
-    border-bottom: 2px solid transparent;
+    transition: background .15s;
 }
-/* 只分两类：偏机会绿、偏风险红。不随 hover 变化 */
-.bcard.good { border-bottom-color: #72A878; }
-.bcard.bad { border-bottom-color: #B87878; }
+/* 只分两类：偏机会淡绿、偏风险淡红，整卡着色，不描边不渐变 */
+.bcard.good { background: #EAF1EC; }
+.bcard.bad { background: #F8EDED; }
 .bc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
 .bc-title { font-size: 13.5px; font-weight: 700; letter-spacing: .2px; }
 .bc-all {
@@ -225,17 +224,17 @@ body {
     flex: none; transition: color .15s;
 }
 .bc-all:hover { color: var(--green); }
-.bc-sub { font-size: 10.5px; color: var(--text-weak); margin-top: 3px; line-height: 1.4; }
+.bc-sub { font-size: 10.5px; color: var(--text-sub); margin-top: 3px; line-height: 1.5; }
 
 .bc-list { margin-top: 7px; }
 .bc-row {
     display: flex; align-items: baseline; gap: 5px; width: 100%;
-    padding: 7px 0; border: 0; border-top: 1px dashed var(--line);
+    padding: 7px 0; border: 0; border-top: 1px dashed rgba(0, 0, 0, .07);
     background: none; cursor: pointer; text-align: left;
     font-family: inherit; transition: background .15s;
 }
 .bc-row:first-child { border-top: 0; }
-.bc-row:hover { background: var(--fill-grey); border-radius: 5px; }
+.bc-row:hover { background: rgba(255, 255, 255, .65); border-radius: 5px; }
 .bc-name {
     font-size: 13px; font-weight: 600; color: var(--text);
     flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -243,10 +242,61 @@ body {
 .bc-code { font-size: 10px; color: var(--text-weak); flex: none; }
 .bc-metric { font-size: 11px; font-weight: 600; color: var(--text-sub); flex: none; }
 
-.bc-warn {
-    font-size: 10.5px; color: var(--text-weak); line-height: 1.5;
-    margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line);
+/* 详情页购买门槛提示 */
+.d-gate {
+    margin-top: 12px; padding: 10px 13px;
+    background: #FAF4EC; border-left: 3px solid #C9A87C;
+    border-radius: 8px; font-size: 12px; line-height: 1.7; color: var(--text-sub);
 }
+.d-gate b { color: var(--text); font-weight: 600; }
+.d-gate.on { background: #EDF3EE; border-left-color: #7E9A8B; }
+
+/* 首页筛选栏：我的权限 / 只看我能买的
+   尺寸、圆角、边框跟左边的 .dw-trigger 完全一致，不另起一套皮肤 */
+.perm-btn, .only-mine {
+    border: 1px solid var(--line-strong); background: #fff; color: var(--text-sub);
+    font-family: inherit; font-size: 13px; padding: 8px 11px; border-radius: 8px;
+    cursor: pointer; transition: border-color .12s, background .12s, color .12s;
+    white-space: nowrap;
+}
+.perm-btn:hover, .only-mine:hover { border-color: var(--text-weak); color: var(--text); }
+.only-mine.on { background: var(--green); border-color: var(--green); color: #fff; font-weight: 600; }
+.perm-btn.on { border-color: var(--green); color: var(--green); }
+
+/* 权限浮层 */
+.perm-mask {
+    position: fixed; inset: 0; background: rgba(40, 38, 36, .28);
+    display: flex; align-items: center; justify-content: center; z-index: 60;
+}
+.perm-card {
+    background: #fff; border-radius: 14px; padding: 18px 20px 16px; width: min(340px, 88vw);
+    box-shadow: 0 12px 40px rgba(40, 38, 36, .18);
+}
+.perm-h { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+.perm-d { font-size: 11.5px; color: var(--text-weak); line-height: 1.6; margin-bottom: 12px; }
+.perm-ok {
+    display: block; width: 100%; margin-top: 14px; padding: 9px 0;
+    border: 0; border-radius: 18px; background: var(--green); color: #fff;
+    font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.perm-row {
+    display: flex; align-items: center; gap: 9px; padding: 9px 0;
+    border-top: 1px solid var(--line); font-size: 13px; cursor: pointer;
+}
+.perm-row input { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; }
+.perm-tip {
+    font-size: 11px; color: var(--text-weak); line-height: 1.6; margin-top: 10px;
+    padding-top: 9px; border-top: 1px solid var(--line);
+}
+/* 板块徽章：需要开通权限的板块才出现，主板不标 */
+.bd {
+    font-style: normal; font-size: 9.5px; font-weight: 600; line-height: 1;
+    padding: 2px 5px; border-radius: 3px; flex: none; white-space: nowrap;
+}
+.bd.gem { background: #F6EFE9; color: #9A7B52; }
+.bd.star { background: #F0F3F5; color: #5C7383; }
+.bd.bse { background: var(--fill-grey); color: var(--text-sub); }
+.bd.on { background: rgba(0, 0, 0, .04); color: var(--text-weak); font-weight: 500; }
 
 @media (max-width: 1360px) { .boards-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 820px) { .boards-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
