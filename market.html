@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全市场 A 股 · 小白诊股</title>
+  <meta name="description" content="沪深 A 股全市场分页列表，共 5563 只，点任意一只进入体检报告。">
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .mkt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .mkt-back { display: inline-flex; align-items: center; font-size: 14px; color: var(--text-sub); text-decoration: none; font-weight: 500; }
+    .mkt-back::before { content: "‹"; font-size: 20px; margin-right: 4px; line-height: 1; }
+    .mkt-title { font-size: 17px; font-weight: 600; }
+    .mkt-sub { font-size: 12px; color: var(--text-weak); margin-bottom: 12px; }
+
+    .mkt-search { background: #fff; border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(60,55,50,.04); }
+    .mkt-search input { border: none; outline: none; width: 100%; font-size: 14px; color: var(--text); background: transparent; }
+    .mkt-search input::placeholder { color: var(--text-weak); }
+
+    .row { background: #fff; border-radius: 12px; padding: 13px 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(60,55,50,.03); transition: transform .1s; }
+    .row:active { transform: scale(.985); }
+    .row.dead { opacity: .55; cursor: not-allowed; background: #FBFAF7; }
+    .row.dead:active { transform: none; }
+    .dead-tag { color: var(--text-weak); font-size: 11px; line-height: 1.5; }
+    .r-main { flex: 1; min-width: 0; }
+    .r-name { font-size: 16px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .r-code { font-size: 11px; color: var(--text-weak); margin-left: 6px; font-weight: 400; }
+    .r-ind { font-size: 11px; color: var(--text-weak); margin-top: 3px; }
+    .r-mid { text-align: right; min-width: 74px; }
+    .r-price { font-size: 15px; font-weight: 700; color: var(--text); }
+    .r-pct { font-size: 12px; font-weight: 600; margin-top: 2px; }
+    .up { color: var(--red); }
+    .down { color: var(--green); }
+    .flat { color: var(--text-weak); }
+    .r-right { min-width: 92px; text-align: right; font-size: 11px; color: var(--text-weak); line-height: 1.6; }
+    .r-right b { color: var(--text-sub); font-weight: 600; }
+
+    .pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 16px 0 8px; flex-wrap: wrap; }
+    .pager button { border: 1px solid var(--line-strong); background: #fff; color: var(--text-sub); font-size: 13px; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+    .pager button:disabled { opacity: .4; cursor: not-allowed; }
+    .pager-info { font-size: 13px; color: var(--text-sub); }
+    .jump { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-weak); }
+    .jump input { width: 52px; border: 1px solid var(--line-strong); border-radius: 6px; padding: 5px 8px; font-size: 12px; text-align: center; outline: none; }
+
+    .empty { background: #fff; border-radius: 12px; padding: 34px 16px; text-align: center; font-size: 13px; color: var(--text-sub); line-height: 1.8; }
+    .retry { margin-top: 10px; border: 1px solid var(--line-strong); background: var(--fill-grey); border-radius: 8px; padding: 7px 16px; font-size: 13px; cursor: pointer; color: var(--text-sub); }
+
+    .mkt-tip { font-size: 11px; color: var(--text-weak); text-align: center; line-height: 1.7; margin-top: 14px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="mkt-head">
+    <a class="mkt-back" href="./index.html">返回精选池</a>
+    <span class="mkt-title">全市场 A 股</span>
+  </div>
+  <div class="mkt-sub">沪深两市共 <b id="total">—</b> 只，按代码从小到大排列，每页 50 只。点任意一只直接出体检报告。</div>
+
+  <div class="mkt-search">
+    <input type="text" id="search-input" inputmode="numeric" placeholder="输入 6 位代码直达，如 600519，回车">
+  </div>
+
+  <div id="list"><div class="empty">正在拉取…</div></div>
+
+  <div class="pager">
+    <button id="btn-prev" disabled>上一页</button>
+    <span class="pager-info" id="pager-info">第 1 页</span>
+    <button id="btn-next" disabled>下一页</button>
+    <div class="jump" id="jump-wrap" style="display:none">
+      <span>跳至</span><input id="btn-jump" type="number" min="1" value="1"><span>页</span>
+    </div>
+  </div>
+
+  <div class="mkt-tip">
+    行情来自东方财富公开接口，可能存在延迟。<br>
+    本页仅为客观数据整理，不构成投资建议，股市有风险。
+  </div>
+</div>
+<script src="js/market.js"></script>
+</body>
+</html>

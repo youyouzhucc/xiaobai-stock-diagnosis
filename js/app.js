@@ -93,6 +93,8 @@ async function init() {
   API.kline('INDEX', 250)
     .then(k => { state.indexKl = k; if (state.current) renderChart(state.range); })
     .catch(() => { });
+
+  handleQuery();
 }
 
 /* ---------- 筛选器 ---------- */
@@ -236,13 +238,32 @@ function renderList() {
   const partialCount = state.items.filter(i => i.status === 'partial').length;
 
   $('status-text').innerHTML = `实时行情 · 已体检 <b>${doneCount}/${state.total}</b>${strain > 0 ? ' · 后台还在算' : ''}${partialCount ? ` · <b>${partialCount}</b> 只缺历史K线` : ''}`;
-  $('status-right').textContent = state.filters.kw ? `命中 ${visible.length} 只` : '';
 
-  if (!visible.length) {
+  const direct = directCardHTML();
+  const hitCount = visible.length + (direct ? 1 : 0);
+  $('status-right').textContent = state.filters.kw ? `命中 ${hitCount} 只` : '';
+
+  if (!visible.length && !direct) {
     list.innerHTML = `<div class="empty">${hasFilter ? '当前条件下没有匹配的股票' : '暂无数据'}${strain > 0 ? '<br>体检还没做完，等几秒再试' : ''}</div>`;
     return;
   }
-  list.innerHTML = visible.map(cardHTML).join('');
+  list.innerHTML = direct + visible.map(cardHTML).join('');
+}
+
+/* 搜索框里输入 6 位代码、且不在精选池时，给一张「直接诊断」卡片 */
+function directCardHTML() {
+  const kw = state.filters.kw;
+  if (!/^\d{6}$/.test(kw)) return '';
+  if (state.items.some(i => i.quote.code === kw)) return '';
+  return `<div class="stock-item direct" onclick="App.openByCode('${kw}')">
+    <div class="si-top">
+      <div class="si-left">
+        <span class="si-name">直接诊断 ${kw}</span>
+      </div>
+      <div class="si-right"><span class="si-go">出报告 ›</span></div>
+    </div>
+    <div class="si-meta">这只不在精选池里，点一下现拉它的行情、财报和历史 K 线。</div>
+  </div>`;
 }
 
 function tagOf(kind, text) {
@@ -313,6 +334,46 @@ function goHome() {
   if (state.chart) { state.chart.dispose(); state.chart = null; }
   switchView('home');
   renderList();
+  try { history.replaceState(null, '', location.pathname); } catch (e) { }
+}
+
+/* ---------- 任意 6 位代码直查 ---------- */
+const secidOf = code => code.startsWith('6') ? '1.' + code : '0.' + code;
+
+async function openByCode(raw) {
+  const code = String(raw || '').trim();
+  if (!/^\d{6}$/.test(code)) return;
+  const secid = secidOf(code);
+
+  const exists = state.items.find(i => i.quote.secid === secid);
+  if (exists) { openDetail(secid); return; }
+
+  switchView('detail');
+  $('detail-body').innerHTML = `<div class="card"><div class="empty">正在拉取 ${esc(code)} 的行情、财报和历史 K 线…</div></div>`;
+
+  try {
+    const quotes = await API.quotes([secid]);
+    if (!quotes.length) throw new Error('接口没有返回这只股票，代码可能不存在或已退市');
+    const item = { quote: quotes[0], py: '', diag: null, kline: null, fin: null, status: 'pending', pending: null, err: null };
+    state.items.unshift(item);
+    state.total = state.items.length;
+    renderList();
+    try { history.replaceState(null, '', '?code=' + code); } catch (e) { }
+    state.current = null;
+    openDetail(secid);
+  } catch (e) {
+    $('detail-body').innerHTML = `<div class="card"><div class="empty">
+      没查到 ${esc(code)}：${esc(e.message || '接口请求失败')}<br><br>
+      请确认是 6 位沪深 A 股代码（60 / 68 / 00 / 30 开头），也可能是接口临时限流，稍等再试。<br><br>
+      <button class="retry" onclick="App.goHome()">回到列表</button>
+    </div></div>`;
+  }
+}
+
+function handleQuery() {
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code') || params.get('c');
+  if (code && /^\d{6}$/.test(code)) openByCode(code);
 }
 
 function switchView(name) {
@@ -848,6 +909,6 @@ document.addEventListener('click', e => {
 
 window.addEventListener('resize', () => { if (state.chart) state.chart.resize(); });
 
-window.App = { openDetail, goHome, setRange, toggleDw, pick };
+window.App = { openDetail, openByCode, goHome, setRange, toggleDw, pick };
 
 init();
