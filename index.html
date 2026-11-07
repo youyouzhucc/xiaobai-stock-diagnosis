@@ -9,7 +9,7 @@
   <meta property="og:description" content="真实行情 + 真实财报 + 真实历史 K 线，把专业指标翻译成人话。">
   <meta property="og:type" content="website">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236B8277'/%3E%3Cpath d='M7 22l6-7 4 3 8-10' stroke='%23fff' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='25' cy='8' r='2.4' fill='%23fff'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/style.css?v=13">
+  <link rel="stylesheet" href="css/style.css?v=16">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
@@ -17,13 +17,18 @@
 
   <!-- 首页 -->
   <div id="home-view" class="view active">
-    <div class="search-box">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <circle cx="11" cy="11" r="7"></circle>
-        <path d="M20 20l-3.5-3.5"></path>
-      </svg>
-      <input type="text" id="search-input" autocomplete="off"
-             placeholder="搜索名称 / 代码 / 拼音首字母，如 茅台、600519、gzmt">
+    <div class="search-row">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"></circle>
+          <path d="M20 20l-3.5-3.5"></path>
+        </svg>
+        <input type="text" id="search-input" autocomplete="off"
+               placeholder="搜索名称 / 代码 / 拼音首字母，如 茅台、600519、gzmt">
+      </div>
+      <button class="guide-btn" id="guide-btn" type="button">
+        <span class="guide-q">?</span>新手看这里
+      </button>
     </div>
 
     <!-- 今日大盘 -->
@@ -33,7 +38,7 @@
         <span class="mk-time" id="mk-time">加载中…</span>
       </div>
       <div class="mk-idx" id="mk-idx"></div>
-      <div class="mk-bar" id="mk-bar">
+      <div class="mk-breadth" id="mk-bar">
         <i class="rise" id="mk-rise"></i><i class="flat" id="mk-flat"></i><i class="fall" id="mk-fall"></i>
       </div>
       <div class="mk-nums" id="mk-nums">正在统计涨跌家数…</div>
@@ -44,13 +49,15 @@
       <div class="mk-src">行情与涨跌家数来自东方财富公开接口（沪深两市合并统计），休市时显示最近一个交易日。数据仅供参考。</div>
     </div>
 
-    <!-- 新手入门 -->
-    <details class="tutor">
-      <summary>
-        <span class="tutor-title">📖 新手先看这里：4 条最容易被忽略的常识</span>
-        <span class="tutor-sub">2 分钟</span>
-      </summary>
-      <div class="tutor-body">
+    <!-- 新手入门浮层 -->
+    <div class="guide-mask" id="guide-mask" aria-hidden="true">
+      <div class="guide-panel" role="dialog" aria-modal="true" aria-label="新手常识">
+        <div class="guide-head">
+          <div class="guide-title">新手先看这里：4 条最容易被忽略的常识</div>
+          <div class="guide-sub">约 2 分钟</div>
+          <button class="guide-x" id="guide-close" type="button" aria-label="关闭">×</button>
+        </div>
+        <div class="guide-body tutor-body">
         <div class="tutor-sec">
           <div class="tutor-h">1. 先把心态摆正</div>
           <p>只用闲钱：亏了不影响生活、房租、还贷的钱，才适合拿进股市。</p>
@@ -84,11 +91,11 @@
           <p>频繁交易的手续费和判断失误，长期看会吃掉大部分收益。</p>
         </div>
         <div class="tutor-warn">本工具只做客观数据整理与指标解释，<b>不构成任何买卖建议</b>，也不推荐具体标的。</div>
+        </div>
       </div>
-    </details>
+    </div>
 
     <div class="filters" id="filters"></div>
-    <div class="diag-hint" id="diag-hint">正在拉取行情…</div>
     <div id="list"></div>
 
     <a class="market-entry" href="market.html">
@@ -99,8 +106,9 @@
 
     <div class="disclaimer">
       行情与历史 K 线来自东方财富公开接口，财务数据来自上市公司定期报告。<br>
+      综合分由定时任务每天 12:05 算好一次，全天复用（含财报口径，不随盘中价格变动重算）。<br>
       <b>本页仅为客观数据整理，不构成投资建议。</b>股市有风险，投资需谨慎。
-      <div class="ver">v13</div>
+      <div class="ver">v16</div>
     </div>
   </div>
 
@@ -121,8 +129,8 @@
 
 <button class="to-top" id="to-top" title="回到顶部">↑</button>
 
-<script src="js/api.js?v=13"></script>
-<script src="js/score.js?v=13"></script>
-<script src="js/app.js?v=13"></script>
+<script src="js/api.js?v=16"></script>
+<script src="js/score.js?v=16"></script>
+<script src="js/app.js?v=16"></script>
 </body>
 </html>

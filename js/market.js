@@ -124,6 +124,20 @@ function loadScores() {
     }
   } catch (e) { }
 }
+
+/* 把当天 12:05 生成的分数快照并进来，精选池的 30 只在这里也有分 */
+async function mergeSnapshot() {
+  try {
+    const res = await fetch('data/scores.json?_=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const j = await res.json();
+    Object.keys(j.items || {}).forEach(code => {
+      const s = j.items[code];
+      if (s && typeof s.total === 'number') state.scores.set(code, s.total);
+    });
+    if (j.date) state.snapshotDate = j.date;
+  } catch (e) { }
+}
 const scoreOf = code => state.scores.has(code) ? state.scores.get(code) : null;
 
 /* ---------- 拉数据 ---------- */
@@ -393,6 +407,7 @@ function syncURL() {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadScores();
+  mergeSnapshot().then(() => { if (state.rows && state.rows.length) render(); });
   buildFilters();
 
   // 从地址栏恢复筛选/排序

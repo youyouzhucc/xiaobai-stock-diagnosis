@@ -141,7 +141,9 @@ const state = {
   range: '1m',
   indexKl: null,
   order: null,
-  fullRebuild: true
+  fullRebuild: true,
+  rankIndex: null,
+  rankLoading: false
 };
 
 /* ---------- 工具 ---------- */
@@ -154,6 +156,56 @@ const f1 = v => (v === null || v === undefined) ? '—' : v.toFixed(1);
 const cls = v => v === null ? 'flat' : v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
 const scoreColor = s => s === null ? 'var(--text-weak)' : s >= 80 ? 'var(--green)' : s >= 60 ? 'var(--orange)' : 'var(--text-weak)';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+/* ---------- 每日综合分快照（每天 12:05 由 Actions 算好，全天复用） ---------- */
+async function loadPreScores() {
+  try {
+    const res = await fetch('data/scores.json?_=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) { return null; }
+}
+
+function applyPreScores(pre) {
+  if (!pre || !pre.items) return 0;
+  let hit = 0;
+  state.items.forEach(it => {
+    const s = pre.items[it.quote.code];
+    if (!s || typeof s.total !== 'number') return;
+    it.diag = {
+      total: s.total, base: s.base, val: s.val, trend: s.trend, risk: s.risk,
+      stats: s.stats || null,
+      keys: s.keys || {},
+      financial: !!s.financial,
+      weights: s.weights || 4
+    };
+    it.dividend = s.dividendYield === null || s.dividendYield === undefined
+      ? null
+      : { dps: null, yieldPct: s.dividendYield, pre: true };
+    it.pre = true;
+    it.status = 'done';
+    hit++;
+  });
+  state.preMeta = pre;
+  state.preHit = hit;
+  return hit;
+}
+
+/* ---------- 新手浮层 ---------- */
+function openGuide() {
+  const m = $('guide-mask');
+  if (!m) return;
+  m.classList.add('on');
+  m.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+}
+function closeGuide() {
+  const m = $('guide-mask');
+  if (!m) return;
+  m.classList.remove('on');
+  m.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+}
 
 /* ---------- 启动 ---------- */
 async function init() {
@@ -172,6 +224,13 @@ async function init() {
     state.fullRebuild = true;
     scheduleRender();
   });
+
+  const gb = $('guide-btn'), gm = $('guide-mask'), gx = $('guide-close');
+  if (gb) gb.addEventListener('click', openGuide);
+  if (gx) gx.addEventListener('click', closeGuide);
+  if (gm) gm.addEventListener('click', e => { if (e.target === gm) closeGuide(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeGuide(); });
+
   $('list').innerHTML = '<div class="empty">正在获取实时行情…</div>';
 
   try {
@@ -185,8 +244,13 @@ async function init() {
     }).filter(Boolean);
 
     state.total = state.items.length;
+
+    /* 先吃当天的分数快照：有快照就直接满血显示，不再逐只现算 */
+    const pre = await loadPreScores();
+    const hit = applyPreScores(pre);
+
     renderList();
-    diagnoseQueue();
+    if (hit < 3) diagnoseQueue();
   } catch (e) {
     state.bootError = e.message || '行情获取失败';
     $('list').innerHTML = `<div class="error-state">行情获取失败：${esc(state.bootError)}<br>可能是网络或数据接口临时不可用。<br><button onclick="location.reload()">重新加载</button></div>`;
@@ -309,8 +373,11 @@ document.addEventListener('click', () => {
 
 /* ---------- 诊断（后台逐只体检） ---------- */
 function ensureDiag(item) {
-  if (item.status === 'done' || item.status === 'partial') return Promise.resolve(item);
+  /* 分数已有当日快照、只差财报和 K 线（详情页要用）时，补齐数据但不重算分数 */
+  const fillOnly = !!item.pre && !item.fin;
+  if (!fillOnly && (item.status === 'done' || item.status === 'partial')) return Promise.resolve(item);
   if (item.pending) return item.pending;
+  const wasDone = item.status === 'done';
   item.status = 'loading';
   item.pending = (async () => {
     const [kl, fin, dv] = await Promise.allSettled([
@@ -327,12 +394,16 @@ function ensureDiag(item) {
       item.err = (kl.reason && kl.reason.message) || (fin.reason && fin.reason.message) || '数据获取失败';
       return item;
     }
-    item.diag = Score.score({ quote: item.quote, fin: item.fin, stats: Score.statsOf(item.kline) });
+
+    /* 有当日快照的股票沿用快照分数，只补数据不重算 */
+    if (!item.diag) {
+      item.diag = Score.score({ quote: item.quote, fin: item.fin, stats: Score.statsOf(item.kline) });
+    }
     if (item.diag && item.diag.total !== null) {
       // 记下分数，全市场页可以按分数排序（只对评测过的股票有效）
       try { localStorage.setItem('xs:' + item.quote.code, JSON.stringify({ t: item.diag.total, at: Date.now() })); } catch (e) { }
     }
-    item.status = item.kline ? 'done' : 'partial';
+    item.status = wasDone ? 'done' : (item.kline ? 'done' : 'partial');
     item.err = item.kline ? null : '历史 K 线获取失败，趋势与风险评分未计入';
     return item;
   })().then(r => {
@@ -354,9 +425,6 @@ let diagDoneCount = 0;
 function onDiagDone() { diagDoneCount++; }
 
 async function diagnoseQueue() {
-  const hint = $('diag-hint');
-  if (hint) hint.textContent = '体检中，分数会在全部算完后一并填入';
-
   const queue = state.items.slice();
   const worker = async () => {
     while (queue.length) {
@@ -367,7 +435,6 @@ async function diagnoseQueue() {
   };
   await Promise.all([worker(), worker()]);
 
-  if (hint) hint.textContent = '体检完成，分数已填入';
   scheduleRender(); // 一次性填入所有分数
 
   // 兜底：45 秒还没算完（接口卡住时）先把手上的结果填进去
@@ -599,7 +666,11 @@ async function openDetail(secid) {
 
   await ensureDiag(item);
   if (state.current !== item) return;
-  renderDetail(item);
+  try {
+    renderDetail(item);
+  } catch (e) {
+    $('detail-body').innerHTML = `<div class="card"><div class="empty">渲染出错：${esc(e.message)}<br><small>${esc(String(e.stack || '').split('\n').slice(0, 3).join(' | '))}</small></div></div>`;
+  }
 }
 
 function goHome() {
@@ -655,11 +726,45 @@ function switchView(name) {
   window.scrollTo(0, 0);
 }
 
-function rankOf(it) {
-  const scored = state.items.filter(i => i.diag && i.diag.total !== null).sort((a, b) => b.diag.total - a.diag.total);
-  const idx = scored.indexOf(it);
-  if (idx < 0) return '';
-  return `样本池第 ${idx + 1}/${scored.length} 名`;
+/* ---------- 全市场估值排名（每日由脚本生成 data/ranks.json） ---------- */
+function paintRank() {
+  const box = document.getElementById('d-rank');
+  const it = state.current;
+  if (!box || !it) return;
+  const q = it.quote;
+  if (q.pe !== null && q.pe <= 0) {
+    box.textContent = '亏损中，不参与估值排名';
+    box.removeAttribute('title');
+    return;
+  }
+  const r = state.rankIndex && state.rankIndex.get(q.code);
+  if (!r) {
+    box.textContent = '这只不在估值排名口径内';
+    return;
+  }
+  box.textContent = `全市场估值第 ${r.r} / ${r.n} 名`;
+  box.title = '按市盈率、市净率在全市场 5000 多只里综合排序；不含财报与 K 线，亏损股不参与';
+}
+
+async function kickMarketRank() {
+  if (state.rankIndex) { paintRank(); return; }
+  if (state.rankLoading) return;
+  state.rankLoading = true;
+  try {
+    const res = await fetch('data/ranks.json?_=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const j = await res.json();
+    const n = j.n || 0, maps = j.ranks || {};
+    const idx = new Map();
+    Object.keys(maps).forEach(k => idx.set(k, { r: maps[k], n }));
+    state.rankIndex = idx;
+    paintRank();
+  } catch (e) {
+    const box = document.getElementById('d-rank');
+    if (box) box.textContent = '全市场排名暂不可用';
+  } finally {
+    state.rankLoading = false;
+  }
 }
 
 function verdictOf(it) {
@@ -881,7 +986,10 @@ function renderDetail(it) {
         <div class="d-title">${esc(q.name)}</div>
         <div class="d-sub">${q.code} · ${esc(q.industry)}</div>
       </div>
-      <div class="d-score" style="background:${scoreColor(d.total)}">${d.total === null ? '—' : d.total}<small>分</small></div>
+      <div class="d-score-wrap">
+        <div class="d-score" style="background:${scoreColor(d.total)}">${d.total === null ? '—' : d.total}<small>分</small></div>
+        <div class="d-rank" id="d-rank">全市场排名加载中…</div>
+      </div>
     </div>
 
     <div class="d-pricebar">
@@ -890,7 +998,6 @@ function renderDetail(it) {
       <span>PE ${q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe)}</span>
       <span>PB ${f1(q.pb)}</span>
       <span>市值 ${fcap(q.mktcap)}</span>
-      <span class="anchor">${rankOf(it) || '样本池内排名'}</span>
     </div>
 
     <div class="verdict">${verdictOf(it)}</div>
@@ -923,8 +1030,8 @@ function renderDetail(it) {
       <span class="st-concl">${odds ? (odds.odds === null ? '贴着地板' : `赔率 ${odds.odds.toFixed(1)}`) : '—'}</span>
     </div>
     <div class="odds-head">
-      <span class="lo">向下的地板：${odds ? f2(odds.low) + ' 元（' + odds.lowDate.slice(5) + '）' : '—'}</span>
-      <span class="hi">向上的天花板：${odds ? f2(odds.high) + ' 元（' + odds.highDate.slice(5) + '）' : '—'}</span>
+      <span class="lo">向下的地板：${odds ? f2(odds.low) + ' 元（' + String(odds.lowDate || '').slice(5) + '）' : '—'}</span>
+      <span class="hi">向上的天花板：${odds ? f2(odds.high) + ' 元（' + String(odds.highDate || '').slice(5) + '）' : '—'}</span>
     </div>
     <div class="odds">
       <div class="odds-down"><div class="odds-label">如果跌到地板，还要亏</div><div class="odds-val">${odds ? odds.down.toFixed(0) + '%' : '—'}</div></div>
@@ -1021,6 +1128,7 @@ function renderDetail(it) {
   </div>`;
 
   renderChart(state.range);
+  kickMarketRank();
   syncVersion();
 }
 
@@ -1095,6 +1203,7 @@ function renderChart(range) {
     grid: { left: 46, right: 12, top: 22, bottom: 24 },
     tooltip: {
       trigger: 'axis',
+      confine: true,
       backgroundColor: '#fff',
       borderColor: '#EFECE6',
       borderWidth: 1,
@@ -1104,11 +1213,36 @@ function renderChart(range) {
       formatter: params => {
         const d0 = params[0];
         let html = `<div style="font-size:12px;color:#8A8581;margin-bottom:6px">${d0.axisValue}</div>`;
+        let stock = null, ma = null, idx = null;
         params.forEach(p => {
           if (p.value === null || p.value === undefined) return;
+          const v = Number(p.value);
+          if (p.seriesName === '本股') stock = v;
+          else if (p.seriesName === '20日均线') ma = v;
+          else if (p.seriesName === '沪深300') idx = v;
           html += `<div style="display:flex;justify-content:space-between;gap:14px;line-height:1.7">
-            <span>${p.marker}${p.seriesName}</span><b>${Number(p.value).toFixed(2)}</b></div>`;
+            <span>${p.marker}${p.seriesName}</span><b>${v.toFixed(2)}</b></div>`;
         });
+
+        /* 把三条线的相对关系翻译成人话 */
+        const notes = [];
+        if (stock !== null && ma !== null && ma > 0) {
+          const gap = (stock - ma) / ma * 100;
+          notes.push(gap >= 0
+            ? `比自己的 20 日均线高 ${gap.toFixed(1)}%，短期处于均线之上`
+            : `比自己的 20 日均线低 ${Math.abs(gap).toFixed(1)}%，短期处于均线之下`);
+        }
+        if (stock !== null && idx !== null && idx > 0) {
+          const gap = (stock - idx) / idx * 100;
+          notes.push(gap >= 0
+            ? `比沪深300 同期高 ${gap.toFixed(1)}%，跑赢大盘`
+            : `比沪深300 同期低 ${Math.abs(gap).toFixed(1)}%，跑输大盘`);
+        }
+        if (notes.length) {
+          html += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #EFECE6;
+            width:196px;white-space:normal;word-break:break-word;
+            font-size:11px;color:#5A5652;line-height:1.6">${notes.map(n => `<div>${n}</div>`).join('')}</div>`;
+        }
         return html;
       }
     },
