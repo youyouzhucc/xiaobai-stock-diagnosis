@@ -136,6 +136,22 @@ body {
     color: var(--blue); font-size: 11px; font-weight: 700;
 }
 
+/* 搜索行右侧第二颗按钮：设置我能买的。跟「新手看这里」同一套外观 */
+.perm-entry {
+    flex: none; display: inline-flex; align-items: center; gap: 6px;
+    background: #fff; border: 1px solid var(--line-strong); border-radius: 10px;
+    padding: 0 13px; font-size: 12.5px; color: var(--text-sub);
+    font-family: inherit; cursor: pointer; box-shadow: 0 2px 8px rgba(60, 55, 50, .045);
+    white-space: nowrap;
+}
+.perm-entry:hover { border-color: var(--green); color: var(--green); }
+.perm-entry.on { border-color: var(--green); color: var(--green); }
+.perm-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--line-strong);
+    flex: none;
+}
+.perm-entry.on .perm-dot { background: var(--green); }
+
 /* ---------- 新手浮层 ---------- */
 .guide-mask {
     position: fixed; inset: 0; z-index: 120; display: none;
@@ -212,11 +228,8 @@ body {
     display: flex; flex-direction: column;
     background: var(--card); border-radius: 12px; padding: 12px 12px 10px;
     box-shadow: 0 2px 10px rgba(60, 55, 50, .045);
-    transition: background .15s;
 }
-/* 只分两类：偏机会淡绿、偏风险淡红，整卡着色，不描边不渐变 */
-.bcard.good { background: #EAF1EC; }
-.bcard.bad { background: #F8EDED; }
+/* 六个方向统一白底，不按好/坏上色 —— 颜色留给股名单里的板块徽章 */
 .bc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
 .bc-title { font-size: 13.5px; font-weight: 700; letter-spacing: .2px; }
 .bc-all {
@@ -251,17 +264,15 @@ body {
 .d-gate b { color: var(--text); font-weight: 600; }
 .d-gate.on { background: #EDF3EE; border-left-color: #7E9A8B; }
 
-/* 首页筛选栏：我的权限 / 只看我能买的
-   尺寸、圆角、边框跟左边的 .dw-trigger 完全一致，不另起一套皮肤 */
-.perm-btn, .only-mine {
+/* 筛选栏末尾的「只看我能买的」：尺寸圆角跟左边的 .dw-trigger 完全一致 */
+.only-mine {
     border: 1px solid var(--line-strong); background: #fff; color: var(--text-sub);
     font-family: inherit; font-size: 13px; padding: 8px 11px; border-radius: 8px;
     cursor: pointer; transition: border-color .12s, background .12s, color .12s;
     white-space: nowrap;
 }
-.perm-btn:hover, .only-mine:hover { border-color: var(--text-weak); color: var(--text); }
+.only-mine:hover { border-color: var(--text-weak); color: var(--text); }
 .only-mine.on { background: var(--green); border-color: var(--green); color: #fff; font-weight: 600; }
-.perm-btn.on { border-color: var(--green); color: var(--green); }
 
 /* 权限浮层 */
 .perm-mask {

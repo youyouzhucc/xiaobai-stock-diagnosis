@@ -219,29 +219,20 @@ const BOARD_SUB = {
   cold: '换手不到 1%，想买容易，想卖可能没人接'
 };
 
-/* 主题色调：只分两类 —— 偏机会的用绿、偏风险的用红，其余保持中性。
- * 不做 hover 变色，也不用六种颜色，避免首页看起来花。
- */
-const BOARD_TONE = {
-  cheap: 'good',
-  bluechip: 'good',
-  rise60: 'good',
-  drop60: 'bad',
-  cold: 'bad',
-  volume: ''
-};
+/* 主题色调：六个方向统一白底，不再按好/坏上色 */
+const BOARD_TONE = {};
 
 function boardHTML(b) {
-  const tone = BOARD_TONE[b.id] || '';
   const sub = BOARD_SUB[b.id] || b.note || '';
+  /* 榜单这一行不放板块徽章：这里一列窄，塞进去名字会被挤断。
+     能不能买只在大卡片和详情页标。 */
   const rows = (b.stocks || []).map(s => `
     <button class="bc-row" onclick="App.openByCode('${s.code}')">
       <span class="bc-name">${esc(s.name)}</span>
       <span class="bc-code">${s.code}</span>
-      ${UI.badge(s.code)}
       <span class="bc-metric">${metricText(b.id, s)}</span>
     </button>`).join('');
-  return `<div class="bcard${tone ? ' ' + tone : ''}">
+  return `<div class="bcard">
     <div class="bc-head">
       <span class="bc-title">${esc(b.title)}</span>
       <a class="bc-all" href="market.html?theme=${encodeURIComponent(b.id)}">共 ${b.count} 只 ›</a>
@@ -315,6 +306,7 @@ function closeGuide() {
 async function init() {
   renderFilters();
   syncVersion();
+  syncPermEntry();
   loadMarket();
   loadBoards();   // 榜单跟大盘并行拉，谁先回来谁先显示
 
@@ -478,22 +470,32 @@ function renderFilters() {
   }).join('') + permControls();
 }
 
-/* 权限相关的两个控件，跟在筛选栏末尾 */
+/* 筛选栏末尾只留一个真正起筛选作用的开关；设置类入口放到了搜索行右边 */
 function permControls() {
-  const p = UI.perms();
-  const n = (p.gem ? 1 : 0) + (p.star ? 1 : 0);
-  return `<button class="perm-btn${n ? ' on' : ''}" onclick="App.openPerm()">我的权限${n ? ' · 已开 ' + n + ' 项' : ''}</button>
-    <button class="only-mine${state.onlyMine ? ' on' : ''}" onclick="App.toggleOnlyMine()">只看我能买的</button>`;
+  return `<button class="only-mine${state.onlyMine ? ' on' : ''}" onclick="App.toggleOnlyMine()">只看我能买的</button>`;
 }
 
-function openPerm() {
+/* 顶部那颗「设置我能买的」按钮的状态：设过就点亮绿点 */
+function syncPermEntry() {
+  const n = Object.keys(UI.perms()).length;
+  const b = $('perm-entry');
+  if (b) {
+    b.classList.toggle('on', !!n);
+    b.title = n ? '已开通 ' + n + ' 个板块，点这里修改' : '设置自己已经开通了哪些板块';
+  }
+}
+
+let permAutoMine = false;
+
+function openPerm(auto) {
   closePerm();
+  permAutoMine = !!auto;
   const p = UI.perms();
   const mask = document.createElement('div');
   mask.className = 'perm-mask';
   mask.innerHTML = `<div class="perm-card">
-    <div class="perm-h">我的交易权限</div>
-    <div class="perm-d">勾上你券商里已经开通的，页面会把买不了的那几只标出来。这些只存在你自己的浏览器里，不会上传。</div>
+    <div class="perm-h">设置我能买的</div>
+    <div class="perm-d">勾上你券商里已经开通的板块。设好之后，筛选里的「只看我能买的」会把买不了的票滤掉。这些只存在你自己的浏览器里，不会上传。</div>
     <label class="perm-row"><input type="checkbox" data-k="gem"${p.gem ? ' checked' : ''}> 已开通创业板（10 万 / 2 年）</label>
     <label class="perm-row"><input type="checkbox" data-k="star"${p.star ? ' checked' : ''}> 已开通科创板（50 万 / 2 年）</label>
     <div class="perm-tip">不确定开没开？打开券商 App →「我的」→ 业务办理里搜「创业板」「科创板」，搜得到就是还没开。</div>
@@ -511,6 +513,8 @@ function closePerm() {
 function applyPerm() {
   document.querySelectorAll('.perm-mask input[data-k]').forEach(i => UI.setPerm(i.dataset.k, i.checked));
   closePerm();
+  if (permAutoMine) { state.onlyMine = true; permAutoMine = false; }
+  syncPermEntry();
   renderFilters();
   state.fullRebuild = true;
   renderList();
@@ -526,6 +530,8 @@ function applyPerm() {
 }
 
 function toggleOnlyMine() {
+  // 还没设置过任何权限就打开筛选，会把一半股票无缘无故藏掉，先让他设
+  if (!state.onlyMine && !Object.keys(UI.perms()).length) { openPerm(true); return; }
   state.onlyMine = !state.onlyMine;
   renderFilters();
   state.fullRebuild = true;
