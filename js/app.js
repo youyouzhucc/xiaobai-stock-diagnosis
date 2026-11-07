@@ -143,6 +143,14 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 /* ---------- 启动 ---------- */
 async function init() {
   renderFilters();
+  loadMarket();
+
+  const toTop = $('to-top');
+  window.addEventListener('scroll', () => {
+    toTop.classList.toggle('show', window.scrollY > 350);
+  }, { passive: true });
+  toTop.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
   $('search-input').addEventListener('input', e => {
     state.filters.kw = e.target.value.trim().toLowerCase();
     scheduleRender();
@@ -175,6 +183,72 @@ async function init() {
 }
 
 /* ---------- 筛选器 ---------- */
+function fmtAmt(v) {
+  if (v == null || !v) return '—';
+  if (v >= 1e12) return (v / 1e12).toFixed(2) + ' 万亿';
+  return (v / 1e8).toFixed(0) + ' 亿';
+}
+
+async function loadMarket() {
+  const box = $('mk-idx');
+  if (!box) return;
+  try {
+    const idx = await API.market();
+    const sh = idx.find(x => x.code === '000001');
+    const sz = idx.find(x => x.code === '399001');
+    const hs = idx.find(x => x.code === '000300');
+
+    box.innerHTML = idx.map(x => {
+      const cls = x.pct > 0 ? 'up' : (x.pct < 0 ? 'down' : 'flat');
+      const sg = x.pct > 0 ? '+' : '';
+      const pct = x.pct == null ? '—' : sg + x.pct.toFixed(2) + '%';
+      return `<div class="mk-idx-item">
+        <div class="mk-idx-name">${esc(x.name)}</div>
+        <div class="mk-idx-val ${cls}">${x.price == null ? '—' : x.price.toFixed(2)}<span class="mk-idx-pct">${pct}</span></div>
+      </div>`;
+    }).join('');
+
+    const rise = (sh && sh.rise || 0) + (sz && sz.rise || 0);
+    const fall = (sh && sh.fall || 0) + (sz && sz.fall || 0);
+    const flatN = (sh && sh.flat || 0) + (sz && sz.flat || 0);
+    const all = rise + fall + flatN;
+
+    $('mk-rise').style.width = all ? (rise / all * 100).toFixed(1) + '%' : '0%';
+    $('mk-flat').style.width = all ? (flatN / all * 100).toFixed(1) + '%' : '0%';
+    $('mk-fall').style.width = all ? (fall / all * 100).toFixed(1) + '%' : '0%';
+
+    $('mk-nums').innerHTML = all
+      ? `上涨 <b class="up">${rise}</b> 家　平盘 <b>${flatN}</b> 家　下跌 <b class="down">${fall}</b> 家　共 ${all} 只`
+      : '涨跌家数暂未取到';
+
+    const amt = (sh && sh.amount || 0) + (sz && sz.amount || 0);
+    $('mk-amount').innerHTML = `两市成交<b>${fmtAmt(amt)}</b>元`;
+
+    const ratio = all ? rise / all : 0.5;
+    const hsPct = hs && hs.pct != null ? hs.pct : null;
+    let txt = '涨跌参半，分化行情', tone = '';
+    if (ratio >= 0.7) { txt = '普涨，多数股票在赚钱'; tone = 'warm'; }
+    else if (ratio >= 0.55) { txt = '偏暖，上涨的多一些'; tone = 'warm'; }
+    else if (ratio >= 0.45) { txt = '涨跌参半，分化行情'; tone = ''; }
+    else if (ratio >= 0.3) { txt = '偏冷，多数股票在跌'; tone = 'cold'; }
+    else { txt = '普跌，情绪明显偏冷'; tone = 'cold'; }
+
+    let extra = '';
+    if (hsPct != null) extra = `，沪深300 ${hsPct > 0 ? '+' : ''}${hsPct.toFixed(2)}%`;
+    const sent = $('mk-sent');
+    sent.textContent = txt + extra;
+    sent.className = 'mk-sent ' + tone;
+
+    $('mk-time').textContent = '更新 ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  } catch (e) {
+    box.innerHTML = '';
+    $('mk-nums').textContent = '大盘数据暂时取不到，稍后刷新试试';
+    $('mk-amount').textContent = '两市成交 —';
+    $('mk-sent').textContent = '';
+    $('mk-time').textContent = '加载失败';
+  }
+}
+
 function renderFilters() {
   $('filters').innerHTML = FILTER_DEFS.map(def => {
     const items = def.opts.map((o, i) =>

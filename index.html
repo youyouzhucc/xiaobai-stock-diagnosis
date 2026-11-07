@@ -9,7 +9,7 @@
   <meta property="og:description" content="真实行情 + 真实财报 + 真实历史 K 线，把专业指标翻译成人话。">
   <meta property="og:type" content="website">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236B8277'/%3E%3Cpath d='M7 22l6-7 4 3 8-10' stroke='%23fff' stroke-width='2.5' fill='none' stroke-linecap='round'/%3E%3Ccircle cx='25' cy='8' r='2.4' fill='%23fff'/%3E%3C/svg%3E">
-  <link rel="stylesheet" href="css/style.css?v=8">
+  <link rel="stylesheet" href="css/style.css?v=9">
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
@@ -26,8 +26,68 @@
              placeholder="搜索名称 / 代码 / 拼音首字母，如 茅台、600519、gzmt">
     </div>
 
-    <div class="filters" id="filters"></div>
+    <!-- 今日大盘 -->
+    <div class="mkt-card" id="mkt-card">
+      <div class="mk-head">
+        <span class="mk-title">今日大盘</span>
+        <span class="mk-time" id="mk-time">加载中…</span>
+      </div>
+      <div class="mk-idx" id="mk-idx"></div>
+      <div class="mk-bar" id="mk-bar">
+        <i class="rise" id="mk-rise"></i><i class="flat" id="mk-flat"></i><i class="fall" id="mk-fall"></i>
+      </div>
+      <div class="mk-nums" id="mk-nums">正在统计涨跌家数…</div>
+      <div class="mk-foot">
+        <span id="mk-amount">两市成交 —</span>
+        <span class="mk-sent" id="mk-sent"></span>
+      </div>
+      <div class="mk-src">行情与涨跌家数来自东方财富公开接口（沪深两市合并统计），休市时显示最近一个交易日。数据仅供参考。</div>
+    </div>
 
+    <!-- 新手入门 -->
+    <details class="tutor">
+      <summary>
+        <span class="tutor-title">📖 新手先看这里：4 条最容易被忽略的常识</span>
+        <span class="tutor-sub">2 分钟</span>
+      </summary>
+      <div class="tutor-body">
+        <div class="tutor-sec">
+          <div class="tutor-h">1. 先把心态摆正</div>
+          <p>只用闲钱：亏了不影响生活、房租、还贷的钱，才适合拿进股市。</p>
+          <p>不借钱、不加杠杆。杠杆会放大亏损，新手最容易在这里一次性亏光。</p>
+          <p>别靠消息：群里、直播间、朋友转的"内幕"，绝大多数到你这里已经是最后一棒。</p>
+          <p>股价短期涨跌没人能算准。这份工具做的是"把公司数据摊开"，不是预测明天涨跌。</p>
+        </div>
+        <div class="tutor-sec">
+          <div class="tutor-h">2. A 股的基本规则</div>
+          <p>T+1：今天买入，最快下一个交易日才能卖。</p>
+          <p>1 手 = 100 股，买入数量要是 100 的整数倍（部分券商支持零股卖出）。</p>
+          <p>交易时间：工作日 9:30–11:30、13:00–15:00，周末与法定节假日休市。</p>
+          <p>涨跌停：主板一般 ±10%，创业板（300 开头）、科创板（688 开头）±20%，ST 股 ±5%。触板后当天可能买不进也卖不出。</p>
+          <p>代码看板块：600/601/603 沪市主板，000/002 深市主板，300 创业板，688 科创板。</p>
+        </div>
+        <div class="tutor-sec">
+          <div class="tutor-h">3. 这份体检报告怎么读</div>
+          <p>综合分 = 底子 40 + 估值 30 + 趋势 20 + 风险 10，缺数据的那一项会剔除并重新配权重。</p>
+          <p><b>分数高 ≠ 会涨</b>。它是"这家公司当下数据好不好看"的相对排序，不是买卖信号。</p>
+          <p>PE（市盈率）：按现在的利润，多少年回本。越低越便宜，但不同行业不能直接比；亏损股 PE 为负，不参与估值打分。</p>
+          <p>PB（市净率）：股价相对账面净资产几倍。银行、地产这类重资产行业更常看它。</p>
+          <p>股息率：最近 12 个月真派过的现金 ÷ 现价，税前。它是"靠分红几年回本"的粗尺度，不含卖出收益。</p>
+          <p>换手率 / 量比：今天有多活跃。长期低于 1% 说明没人搭理，想卖可能卖不掉。</p>
+          <p>指标旁边带"?"的，点一下有白话解释和例子。任何显示"—"的，是数据确实取不到，不是被补成 0。</p>
+        </div>
+        <div class="tutor-sec">
+          <div class="tutor-h">4. 几条朴素的经验</div>
+          <p>别把全部钱压一只股票，也别一次性买满——分批买能把"买在最高点"的影响摊薄。</p>
+          <p>先看懂公司靠什么赚钱，再看股价。看不懂的行业，不碰也是一种正确。</p>
+          <p>财报只看三件事：收入有没有增长、利润是不是真金白银（对比经营现金流）、负债高不高。</p>
+          <p>频繁交易的手续费和判断失误，长期看会吃掉大部分收益。</p>
+        </div>
+        <div class="tutor-warn">本工具只做客观数据整理与指标解释，<b>不构成任何买卖建议</b>，也不推荐具体标的。</div>
+      </div>
+    </details>
+
+    <div class="filters" id="filters"></div>
     <div id="list"></div>
 
     <a class="market-entry" href="market.html">
@@ -58,8 +118,10 @@
   <div id="pop-body"></div>
 </div>
 
-<script src="js/api.js?v=8"></script>
-<script src="js/score.js?v=8"></script>
-<script src="js/app.js?v=8"></script>
+<button class="to-top" id="to-top" title="回到顶部">↑</button>
+
+<script src="js/api.js?v=9"></script>
+<script src="js/score.js?v=9"></script>
+<script src="js/app.js?v=9"></script>
 </body>
 </html>
