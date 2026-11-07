@@ -299,11 +299,12 @@ async function loadAll() {
 
 /* ---------- 筛选 ---------- */
 /* 板块只看代码前缀：300/301/302 = 创业板，688/689 = 科创板，其余算主板 */
-const BOARD_RE = { gem: /^(300|301|302)/, star: /^(688|689)/ };
+const BOARD_RE = { gem: /^(300|301|302)/, star: /^(688|689)/, bse: /^(4|8|92)/ };
 function boardOf(code) {
   const c = String(code || '');
   if (BOARD_RE.gem.test(c)) return { key: 'gem', t: '创业板' };
   if (BOARD_RE.star.test(c)) return { key: 'star', t: '科创板' };
+  if (BOARD_RE.bse.test(c)) return { key: 'bse', t: '北交所' };
   return null;
 }
 function boardTagOf(code) {
@@ -319,6 +320,7 @@ function match(d) {
     if (f.board === 'main' && b) return false;
     if (f.board === 'gem' && (!b || b.key !== 'gem')) return false;
     if (f.board === 'star' && (!b || b.key !== 'star')) return false;
+    if (f.board === 'bse' && (!b || b.key !== 'bse')) return false;
   }
 
   if (f.type && typeOf(d.f100) !== f.type) return false;

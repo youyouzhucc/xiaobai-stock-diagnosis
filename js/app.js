@@ -214,11 +214,11 @@ function ipoItem(x, kind) {
   const when = kind === 'wait'
     ? `申购 ${String(x.applyDate || '').slice(5)}${x.listDate ? ' · 上市 ' + String(x.listDate).slice(5) : ' · 上市待定'}`
     : `上市 ${String(x.listDate || '').slice(5)}`;
-  return `<div class="ipo-item">
+  return `<a class="ipo-item" href="./index.html?code=${esc(x.code)}" data-code="${esc(x.code)}" data-wait="${kind === 'wait' ? '1' : ''}" data-note="${esc(when)}" title="看 ${esc(x.name)} 的详情">
     <div class="ipo-top"><span class="ipo-name">${esc(x.name)}</span><span class="ipo-code">${esc(x.code)}</span>${bd}</div>
     <div class="ipo-mid">发行价 <b>${price}</b>${pe}</div>
     <div class="ipo-when">${when}${x.ballotDate && kind === 'wait' ? ' · 中签公布 ' + String(x.ballotDate).slice(5) : ''}</div>
-  </div>`;
+  </a>`;
 }
 
 function renderIpo(j) {
@@ -233,6 +233,17 @@ function renderIpo(j) {
     ${up.length ? `<div class="ipo-grp-t">等着上市 / 还能申购</div><div class="ipo-grid">${up.map(x => ipoItem(x, 'wait')).join('')}</div>` : ''}
     ${rc.length ? `<div class="ipo-grp-t">最近上市的</div><div class="ipo-grid">${rc.slice(0, 4).map(x => ipoItem(x, 'done')).join('')}</div>` : ''}
     <div class="ipo-tip">打新就是按发行价申购，中签了才付钱，上市第一天才能卖。北交所、科创板要先开通权限，主板不用。</div>`;
+
+  /* 已上市的走链接直接进详情；还没上市的拦下来，说清排期，别点进详情报「没查到」 */
+  $('ipo-body').querySelectorAll('.ipo-item').forEach(el => {
+    el.style.cursor = 'pointer';
+    if (el.dataset.wait === '1') {
+      el.addEventListener('click', e => {
+        e.preventDefault();
+        toast(`${el.querySelector('.ipo-name').textContent} 还没上市：${el.dataset.note}`);
+      });
+    }
+  });
 }
 
 async function loadIpo() {
@@ -1047,7 +1058,8 @@ function goHome() {
 }
 
 /* ---------- 任意 6 位代码直查 ---------- */
-const secidOf = code => code.startsWith('6') ? '1.' + code : '0.' + code;
+/* 沪深主板/创业板/科创板：6 开头走沪市，其余走深市；北交所（43/83/87/92）东财挂在 0 段下，92 不能被当成沪市 9 字头 */
+const secidOf = code => (/^6/.test(code) || (/^9/.test(code) && !/^9[2-9]/.test(code))) ? '1.' + code : '0.' + code;
 
 async function openByCode(raw) {
   const code = String(raw || '').trim();
@@ -1472,7 +1484,7 @@ function renderDetail(it) {
     <div class="d-head">
       <div>
         <div class="d-title">${esc(q.name)}</div>
-        <div class="d-sub">${q.code} · ${esc(q.industry)}</div>
+        <div class="d-sub">${q.code} · ${esc(q.industry)}${UI.badge(q.code)}</div>
       </div>
       <div class="d-score-wrap">
         <div class="d-score" style="background:${scoreColor(d.total)}">${d.total === null ? '—' : d.total}<small>分</small></div>

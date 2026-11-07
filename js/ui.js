@@ -88,7 +88,7 @@ const UI = (() => {
     const c = String(code == null ? '' : code);
     if (/^(688|689)/.test(c)) return BOARDS.star;
     if (/^(300|301)/.test(c)) return BOARDS.gem;
-    if (/^[48]/.test(c)) return BOARDS.bse;
+    if (/^(4|8|92)/.test(c)) return BOARDS.bse;   // 43/83/87/92 都是北交所，9 字头里只有 92 归北交所（900 是沪 B）
     return null;   // 主板：无门槛
   }
 
