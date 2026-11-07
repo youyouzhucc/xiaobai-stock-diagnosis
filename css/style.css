@@ -165,11 +165,28 @@ body {
 .si-score.pending { font-size: 12px; font-weight: 500; color: var(--text-weak); letter-spacing: 0; }
 
 .si-meta {
-    display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--text-sub);
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    font-size: 12px; color: var(--text-sub); line-height: 1.24;
     padding: 9px 0; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line);
     margin-bottom: 9px;
 }
+.si-meta > span { display: inline-flex; align-items: baseline; gap: 1px; }
 .si-meta span b { color: var(--text); font-weight: 600; }
+
+/* 换手 / 量比 / 股息 一行 */
+.si-extra {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+    font-size: 11.5px; color: var(--text-weak); margin: -3px 0 9px;
+}
+.si-extra b { color: var(--text-sub); font-weight: 600; }
+.dot-sep { color: var(--line-strong); }
+
+/* 版本标记：用来一眼确认是不是新版页面 */
+.ver {
+    display: inline-block; margin-top: 8px;
+    font-size: 10px; color: var(--text-weak);
+    background: var(--fill-grey); padding: 2px 7px; border-radius: 4px;
+}
 
 .tags { display: flex; gap: 6px; flex-wrap: wrap; }
 .tag {
@@ -191,7 +208,13 @@ body {
 .error-state button:hover { border-color: var(--green); color: var(--green); }
 
 /* ---------- 详情页 ---------- */
-#detail-view { max-width: 860px; margin: 0 auto; }
+/* 详情页：宽度跟随页面；宽屏分两栏（左=怎么做，右=数据面） */
+#detail-view { max-width: 100%; margin: 0 auto; }
+.d-cols { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 0 14px; }
+.d-col { min-width: 0; }
+@media (min-width: 1080px) {
+    .d-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
 .back {
     display: inline-flex; align-items: center; gap: 3px;
     font-size: 14px; color: var(--text-sub); cursor: pointer; margin-bottom: 12px; font-weight: 500;

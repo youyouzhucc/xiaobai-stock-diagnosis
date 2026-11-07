@@ -5,6 +5,7 @@ const API = (() => {
   const QUOTE = 'https://push2.eastmoney.com/api/qt/ulist.np/get';
   const KLINE = 'https://push2his.eastmoney.com/api/qt/stock/kline/get';
   const FIN = 'https://datacenter-web.eastmoney.com/api/data/v1/get';
+  const BONUS = 'https://datacenter-web.eastmoney.com/api/data/v1/get';
 
   const cache = new Map();
 
@@ -27,7 +28,7 @@ const API = (() => {
   async function quotes(secids) {
     const key = 'q:' + secids.join(',');
     if (cache.has(key)) return cache.get(key);
-    const fields = 'f2,f3,f4,f8,f9,f12,f13,f14,f15,f16,f17,f18,f20,f21,f23,f100';
+    const fields = 'f2,f3,f4,f8,f9,f10,f12,f13,f14,f15,f16,f17,f18,f20,f21,f23,f100';
     const url = `${QUOTE}?secids=${secids.join(',')}&fields=${fields}&_=${Date.now()}`;
     const json = await getJSON(url);
     const diff = json && json.data && json.data.diff;
@@ -45,6 +46,7 @@ const API = (() => {
       open: d2(d.f17),
       prevClose: d2(d.f18),
       turnover: d2(d.f8),
+      volratio: d2(d.f10),
       pe: d2(d.f9),
       pb: d2(d.f23),
       mktcap: num(d.f20),
@@ -124,7 +126,46 @@ const API = (() => {
     return out;
   }
 
+  /* 4. 近 12 个月现金分红 → 股息率 */
+  async function dividend(secid, price) {
+    const key = `dv:${secid}`;
+    if (cache.has(key)) return cache.get(key);
+    const [m, code] = secid.split('.');
+    const suffix = m === '1' ? 'SH' : 'SZ';
+    const filter = encodeURIComponent(`(SECUCODE="${code}.${suffix}")`);
+    const url = `${BONUS}?reportName=RPT_SHAREBONUS_DET&columns=ALL&filter=${filter}` +
+      `&pageNumber=1&pageSize=8&sortTypes=-1&sortColumns=EX_DIVIDEND_DATE` +
+      `&source=HSF10&client=PC&_=${Date.now()}`;
+    try {
+      const json = await getJSON(url, 12000);
+      const rows = (json && json.result && json.result.data) || [];
+      const from = Date.now() - 380 * 864e5;
+      let perShare = 0, count = 0, lastDate = '';
+      rows.forEach(r => {
+        const t = Date.parse(String(r.EX_DIVIDEND_DATE || '').replace(/-/g, '/'));
+        if (!Number.isFinite(t) || t < from) return;
+        const per10 = num(r.PRETAX_BONUS_RMB);
+        if (!per10 || per10 <= 0) return;
+        perShare += per10 / 10;
+        count++;
+        if (!lastDate) lastDate = String(r.EX_DIVIDEND_DATE).slice(0, 10);
+      });
+      const out = {
+        dps: +perShare.toFixed(3),
+        count,
+        lastDate,
+        yieldPct: (price && price > 0 && perShare > 0) ? +(perShare / price * 100).toFixed(2) : null
+      };
+      cache.set(key, out);
+      return out;
+    } catch (e) {
+      const out = { dps: 0, count: 0, lastDate: '', yieldPct: null, err: true };
+      cache.set(key, out);
+      return out;
+    }
+  }
+
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  return { quotes, kline, financials, sleep };
+  return { quotes, kline, financials, dividend, sleep };
 })();

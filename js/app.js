@@ -37,49 +37,74 @@ const FILTER_DEFS = [
   {
     key: 'type', label: '股票类型', opts: [
       { v: '', t: '不限' },
-      { v: 'consumer', t: '消费' },
-      { v: 'finance', t: '金融' },
-      { v: 'tech', t: '科技' },
-      { v: 'media', t: '传媒' },
-      { v: 'medical', t: '医药' },
-      { v: 'cycle', t: '周期' },
-      { v: 'utility', t: '公用事业' },
-      { v: 'industrial', t: '制造' }
+      { v: 'consumer', t: '消费 · 吃喝穿用' },
+      { v: 'finance', t: '金融 · 银行保险券商' },
+      { v: 'tech', t: '科技 · 芯片软件通信' },
+      { v: 'medical', t: '医药 · 药和器械' },
+      { v: 'newenergy', t: '新能源 · 光伏电池风电' },
+      { v: 'cycle', t: '周期 · 煤钢化工有色' },
+      { v: 'industrial', t: '制造 · 汽车机械军工' },
+      { v: 'realestate', t: '地产建筑 · 房子和工程' },
+      { v: 'utility', t: '公用事业 · 电力燃气交通' },
+      { v: 'media', t: '传媒 · 广告游戏影视' }
     ]
   },
   {
     key: 'cap', label: '市值', opts: [
       { v: '', t: '不限' },
-      { v: 'big', t: '1000 亿以上' },
-      { v: 'mid', t: '200-1000 亿' },
-      { v: 'small', t: '200 亿以内' }
+      { v: 'big', t: '1000 亿以上（大盘）' },
+      { v: 'mid', t: '200-1000 亿（中盘）' },
+      { v: 'small', t: '200 亿以内（小盘）' }
     ]
   },
   {
     key: 'pe', label: '市盈率', opts: [
       { v: '', t: '不限' },
-      { v: 'low', t: '10 倍以内' },
-      { v: 'mid', t: '10-20 倍' },
-      { v: 'high', t: '20 倍以上' },
-      { v: 'loss', t: '亏损' }
+      { v: 'low', t: '10 倍以内（便宜）' },
+      { v: 'mid', t: '10-20 倍之间' },
+      { v: 'high', t: '20 倍以上（偏贵）' },
+      { v: 'loss', t: '亏损中' }
+    ]
+  },
+  {
+    key: 'heat', label: '今日活跃度', opts: [
+      { v: '', t: '不限' },
+      { v: 'quiet', t: '冷清 · 换手不到 1%' },
+      { v: 'normal', t: '正常 · 换手 1-3%' },
+      { v: 'active', t: '活跃 · 换手 3-10%' },
+      { v: 'hot', t: '过热 · 换手 10% 以上' }
+    ]
+  },
+  {
+    key: 'div', label: '股息率', opts: [
+      { v: '', t: '不限' },
+      { v: 'any', t: '近一年有分红' },
+      { v: 'g1', t: '1% 以上' },
+      { v: 'g2', t: '2% 以上' },
+      { v: 'g3', t: '3% 以上' },
+      { v: 'none', t: '近一年没分红' }
     ]
   },
   { key: 'strategy', label: '资金期限', opts: [{ v: '', t: '不限' }, { v: 'long', t: '长期闲钱' }, { v: 'short', t: '短期波段' }] },
   { key: 'risk', label: '风险承受', opts: [{ v: '', t: '不限' }, { v: 'low', t: '稳健保守' }, { v: 'high', t: '追求弹性' }] },
   { key: 'focus', label: '更看重', opts: [{ v: '', t: '不限' }, { v: 'base_good', t: '底子扎实' }, { v: 'val_low', t: '估值便宜' }, { v: 'trend_up', t: '趋势向上' }] },
-  { key: 'chg', label: '今日', opts: [{ v: '', t: '不限' }, { v: 'up', t: '上涨' }, { v: 'down', t: '下跌' }] }
+  { key: 'chg', label: '今日涨跌', opts: [{ v: '', t: '不限' }, { v: 'up', t: '上涨' }, { v: 'down', t: '下跌' }] }
 ];
 
-/* 行业 -> 股票类型（东财行业名末尾常带 Ⅱ/Ⅲ 序号，先去掉再匹配） */
+/* 行业 -> 股票类型（东财行业名末尾常带 Ⅱ/Ⅲ 序号，先去掉再匹配）
+ * 顺序即优先级：越具体、越容易误判的词放前面
+ */
 const TYPE_GROUPS = [
   ['finance', ['银行', '保险', '证券', '多元金融', '信托', '期货']],
   ['tech', ['半导体', '消费电子', '光学光电子', '元件', '软件', '计算机', 'IT服务', '通信', '互联网', '人工智能']],
   ['media', ['广告', '传媒', '游戏', '影视', '出版', '教育']],
   ['medical', ['医疗', '医药', '生物制品', '化学制药', '中药', '疫苗']],
-  ['consumer', ['白酒', '食品', '饮料', '乳品', '啤酒', '零售', '家电', '纺织', '服装', '旅游', '酒店', '餐饮', '农牧', '养殖', '农产品']],
+  ['newenergy', ['光伏', '风电', '电池', '能源金属', '电源设备']],
+  ['consumer', ['白酒', '食品', '饮料', '乳品', '啤酒', '零售', '家电', '纺织', '服装', '旅游', '酒店', '餐饮', '农牧', '养殖', '农产品', '珠宝', '家居']],
+  ['realestate', ['房地产', '建筑', '装修', '工程建设', '园林']],
   ['utility', ['电力', '水务', '燃气', '环保', '交通运输', '港口', '铁路', '航空', '机场', '物流']],
-  ['cycle', ['煤炭', '钢铁', '有色', '小金属', '贵金属', '稀有金属', '化工', '化学', '建材', '水泥', '房地产', '石油', '化纤']],
-  ['industrial', ['汽车', '机械', '设备', '工程机械', '光伏', '风电', '电池', '电气', '军工', '航天', '船舶', '仪器', '轨交']]
+  ['cycle', ['煤炭', '钢铁', '有色', '小金属', '贵金属', '稀有金属', '化工', '化学', '建材', '水泥', '石油', '化纤', '玻璃']],
+  ['industrial', ['汽车', '机械', '设备', '工程机械', '电气', '军工', '航天', '船舶', '仪器', '轨交']]
 ];
 
 function typeOf(industry) {
@@ -94,7 +119,7 @@ function typeOf(industry) {
 
 const state = {
   items: [],
-  filters: { kw: '', type: '', cap: '', pe: '', strategy: '', risk: '', focus: '', chg: '' },
+  filters: { kw: '', type: '', cap: '', pe: '', heat: '', div: '', strategy: '', risk: '', focus: '', chg: '' },
   done: 0,
   total: 0,
   bootError: null,
@@ -196,12 +221,14 @@ function ensureDiag(item) {
   if (item.pending) return item.pending;
   item.status = 'loading';
   item.pending = (async () => {
-    const [kl, fin] = await Promise.allSettled([
+    const [kl, fin, dv] = await Promise.allSettled([
       API.kline(item.quote.secid, 250),
-      API.financials(item.quote.secid)
+      API.financials(item.quote.secid),
+      API.dividend(item.quote.secid, item.quote.price)
     ]);
     item.kline = kl.status === 'fulfilled' ? kl.value : null;
     item.fin = fin.status === 'fulfilled' ? fin.value : null;
+    item.dividend = dv.status === 'fulfilled' ? dv.value : null;
 
     if (!item.kline && !item.fin) {
       item.status = 'error';
@@ -209,6 +236,10 @@ function ensureDiag(item) {
       return item;
     }
     item.diag = Score.score({ quote: item.quote, fin: item.fin, stats: Score.statsOf(item.kline) });
+    if (item.diag && item.diag.total !== null) {
+      // 记下分数，全市场页可以按分数排序（只对评测过的股票有效）
+      try { localStorage.setItem('xs:' + item.quote.code, JSON.stringify({ t: item.diag.total, at: Date.now() })); } catch (e) { }
+    }
     item.status = item.kline ? 'done' : 'partial';
     item.err = item.kline ? null : '历史 K 线获取失败，趋势与风险评分未计入';
     return item;
@@ -271,6 +302,28 @@ function matchFilters(it) {
     if (f.pe === 'high' && !(pe > 20)) return false;
   }
 
+  // 今日活跃度（换手率）
+  if (f.heat) {
+    const t = q.turnover;
+    if (t === null) return false;
+    if (f.heat === 'quiet' && t >= 1) return false;
+    if (f.heat === 'normal' && (t < 1 || t >= 3)) return false;
+    if (f.heat === 'active' && (t < 3 || t >= 10)) return false;
+    if (f.heat === 'hot' && t < 10) return false;
+  }
+
+  // 股息率（近 12 个月实际实施的现金分红 / 现价）
+  if (f.div) {
+    if (!it.dividend) return false;
+    const y = it.dividend.yieldPct;
+    const has = y !== null && y > 0;
+    if (f.div === 'none') return !has;
+    if (!has) return false;
+    if (f.div === 'g1' && y < 1) return false;
+    if (f.div === 'g2' && y < 2) return false;
+    if (f.div === 'g3' && y < 3) return false;
+  }
+
   // 今日涨跌
   if (f.chg) {
     const p = q.pct;
@@ -315,7 +368,7 @@ function renderList() {
 
   const visible = sortItems(state.items.filter(matchFilters));
   const f = state.filters;
-  const hasFilter = !!(f.kw || f.type || f.cap || f.pe || f.strategy || f.risk || f.focus || f.chg);
+  const hasFilter = !!(f.kw || f.type || f.cap || f.pe || f.heat || f.div || f.strategy || f.risk || f.focus || f.chg);
   const doneCount = state.items.filter(i => i.status === 'done' || i.status === 'partial' || i.status === 'error').length;
   const strain = state.total - doneCount;
 
@@ -370,6 +423,11 @@ function cardHTML(it) {
     ? `<span class="si-score" style="color:${scoreColor(d.total)}">${d.total}<small>分</small></span>`
     : `<span class="si-score pending">${it.status === 'error' ? '暂无' : '计算中'}</span>`;
 
+  const extra = [];
+  if (q.turnover !== null && q.turnover !== undefined) extra.push(`换手 <b>${f1(q.turnover)}%</b>`);
+  if (q.volratio !== null && q.volratio !== undefined) extra.push(`量比 <b>${f1(q.volratio)}</b>`);
+  if (it.dividend && it.dividend.yieldPct !== null) extra.push(`股息 <b>${f2(it.dividend.yieldPct)}%</b>`);
+
   return `<div class="stock-item" onclick="App.openDetail('${q.secid}')">
     <div class="si-top">
       <div class="si-left">
@@ -388,6 +446,7 @@ function cardHTML(it) {
       <span>PB <b>${f1(q.pb)}</b></span>
       <span>市值 <b>${fcap(q.mktcap)}</b></span>
     </div>
+    ${extra.length ? `<div class="si-extra">${extra.join('<span class="dot-sep">·</span>')}</div>` : ''}
     <div class="tags">${tags.filter(Boolean).join('')}</div>
   </div>`;
 }
@@ -619,8 +678,29 @@ function translationOf(it) {
   return t;
 }
 
+function divNote(divv, q) {
+  if (!divv) return '分红数据暂不可用。';
+  if (!divv.count) return '最近 12 个月没有实施现金分红，股息率按 0 算。不分红不等于差——可能是把钱留着扩产，但要确认它拿这笔钱赚回的 ROE 够不够高。';
+  const y = divv.yieldPct;
+  let t = `股息率 ${f2(y)}% 的算法：最近 12 个月每股真派了 ${f2(divv.dps)} 元现金（税前），除以现价 ${f2(q.price)} 元。`;
+  if (y >= 4) t += ' 在 A 股属于偏高水平，但要确认不是靠一次性大额派现撑起来的。';
+  else if (y >= 2) t += ' 属于中等水平，比大部分只讲成长的股票厚道。';
+  else t += ' 偏低，通常是成长型公司把钱留着扩产，或者利润本身就不多。';
+  return t;
+}
+
+function heatConcl(q) {
+  const t = q.turnover;
+  if (t === null) return '';
+  if (t >= 10) return '换手 ' + f1(t) + '% · 成交过热';
+  if (t >= 3) return '换手 ' + f1(t) + '% · 成交活跃';
+  if (t >= 1) return '换手 ' + f1(t) + '% · 成交正常';
+  return '换手 ' + f1(t) + '% · 成交清淡';
+}
+
 function renderDetail(it) {
   const q = it.quote, d = it.diag, s = d && d.stats, fin = it.fin;
+  const divv = it.dividend;
   const heat = heatOf(q);
   const adv = adviceOf(it);
   const odds = oddsOf(it);
@@ -679,6 +759,9 @@ function renderDetail(it) {
     <div class="verdict">${verdictOf(it)}</div>
   </div>
 
+  <div class="d-cols">
+  <div class="d-col">
+
   <div class="card">
     <div class="section-title"><span class="st-name">💡 操作建议</span></div>
     <div class="heat"><span>${heat.icon}</span><span>${heat.text}</span></div>
@@ -712,6 +795,23 @@ function renderDetail(it) {
     </div>
     <div class="odds-note">${odds ? odds.note : '缺少历史 K 线，算不出空间。'}</div>
   </div>
+
+  <div class="card">
+    <div class="section-title">
+      <span class="st-name">🌡️ 交易活跃与分红</span>
+      <span class="st-concl">${heatConcl(q)}</span>
+    </div>
+    <div class="kv-grid">
+      <div class="kv"><div class="kv-label"><span class="term" data-term="turnover">换手率</span></div><div class="kv-val">${q.turnover === null ? '—' : f1(q.turnover) + '%'}</div><div class="kv-desc">今天有多大比例的流通股被买卖过</div></div>
+      <div class="kv"><div class="kv-label"><span class="term" data-term="volratio">量比</span></div><div class="kv-val">${q.volratio === null ? '—' : f2(q.volratio)}</div><div class="kv-desc">今天每分钟的成交量，是过去 5 天平均的几倍</div></div>
+      <div class="kv"><div class="kv-label"><span class="term" data-term="dividend">股息率</span></div><div class="kv-val">${divv && divv.yieldPct !== null ? f2(divv.yieldPct) + '%' : '—'}</div><div class="kv-desc">按最近 12 个月真金白银派过的现金算</div></div>
+      <div class="kv"><div class="kv-label">近一年派现</div><div class="kv-val" style="font-size:15px">${divv && divv.count ? `${divv.count} 次 · 每股 ${f2(divv.dps)} 元` : '没有分红'}</div><div class="kv-desc">${divv && divv.lastDate ? '最近一次除息日 ' + divv.lastDate : '派现数据来自分红实施记录'}</div></div>
+    </div>
+    <div class="st-note">${divNote(divv, q)}</div>
+  </div>
+
+  </div>
+  <div class="d-col">
 
   <div class="card">
     <div class="section-title">
@@ -773,10 +873,14 @@ function renderDetail(it) {
     <div class="st-note">数据来自上市公司定期报告，按最近已披露的报告期展示。</div>
   </div>
 
+  </div>
+  </div>
+
   <div class="disclaimer">
     行情、历史 K 线来自东方财富公开接口，财务数据来自上市公司定期报告。<br>
     <b>以上全部是客观数据整理，不构成任何投资建议。</b><br>
     历史数据不代表未来，股市有风险，投资需谨慎。
+    <div class="ver">v8</div>
   </div>`;
 
   renderChart(state.range);
@@ -898,18 +1002,21 @@ function renderChart(range) {
     series: [
       {
         name: '本股', type: 'line', data: closes, smooth: true, symbol: 'circle', symbolSize: 5,
-        showSymbol: false, lineStyle: { color: '#7B8F9D', width: 2.5 },
+        showSymbol: false, color: '#7B8F9D',
+        lineStyle: { color: '#7B8F9D', width: 2.5 },
         itemStyle: { color: '#7B8F9D' },
         areaStyle: { color: 'rgba(123,143,157,0.10)' },
         z: 3
       },
       {
-        name: '20日均线', type: 'line', data: maPart, smooth: true, symbol: 'none',
-        lineStyle: { color: '#B89A7D', width: 1.4, type: 'solid' }, z: 2
+        name: '20日均线', type: 'line', data: maPart, smooth: true, symbol: 'none', color: '#B89A7D',
+        lineStyle: { color: '#B89A7D', width: 1.4, type: 'solid' },
+        itemStyle: { color: '#B89A7D' }, z: 2
       },
       {
-        name: '沪深300', type: 'line', data: idxPart, smooth: true, symbol: 'none',
-        lineStyle: { color: '#A6A29D', width: 1.3, type: 'dashed' }, z: 1
+        name: '沪深300', type: 'line', data: idxPart, smooth: true, symbol: 'none', color: '#A6A29D',
+        lineStyle: { color: '#A6A29D', width: 1.3, type: 'dashed' },
+        itemStyle: { color: '#A6A29D' }, z: 1
       }
     ]
   }, true);
@@ -929,7 +1036,10 @@ const DICT = {
   cap: ['总市值', '市场给这家公司的总报价，等于股价乘以总股本。', '一家公司 10 亿股、每股 20 元，总市值就是 200 亿元。'],
   vol: ['年化波动率', '把最近 60 个交易日的日涨跌幅度折算成一整年的波动幅度。数值越大，股价越颠簸。', '年化波动 50% 意味着一年里上下三成的起伏很正常，心脏不够强就别重仓。'],
   mdd: ['最大回撤', '过去一年里，从阶段最高点跌到最低点的最大跌幅。它衡量的是「最难受的时候有多难受」。', '一只股票从 100 元涨到 120 元又跌到 80 元，最大回撤就是 33%。'],
-  odds: ['赔率', '向上空间和向下空间的比例。赔率 3 倍意味着潜在涨幅是潜在跌幅的 3 倍。', '向下最多亏 10%、向上可能赚 30%，赔率就是 3。']
+  odds: ['赔率', '向上空间和向下空间的比例。赔率 3 倍意味着潜在涨幅是潜在跌幅的 3 倍。', '向下最多亏 10%、向上可能赚 30%，赔率就是 3。'],
+  turnover: ['换手率', '今天成交的股数占流通股的百分比。换手率高说明这只股票今天买卖的人多、分歧大；换手率长期低于 1% 说明没人搭理，想卖可能卖不掉。', '一家公司流通 100 亿股，今天成交 3 亿股，换手率就是 3%。'],
+  volratio: ['量比', '今天平均每分钟的成交量，除以过去 5 个交易日同一时刻的平均成交量。大于 1 说明今天比平时更活跃，突然放到 3 倍以上往往是有消息。', '量比 2.0 = 今天每分钟的成交是平时的 2 倍，说明有人在集中买卖。'],
+  dividend: ['股息率', '最近 12 个月公司真金白银派给你的现金，除以现在的股价。它是「光靠分红几年能回本」的粗略尺度，不含卖出收益，也不考虑分红税。', '股价 100 元、一年每股派 3 元，股息率就是 3%。注意这是税前的现金分红。']
 };
 
 function showPopover(el, key) {
