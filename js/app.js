@@ -206,14 +206,27 @@ function metricText(id, s) {
   return `${m.label} ${v}`;
 }
 
+/* 主题色调：只分两类 —— 偏机会的用绿、偏风险的用红，其余保持中性。
+ * 不做 hover 变色，也不用六种颜色，避免首页看起来花。
+ */
+const BOARD_TONE = {
+  cheap: 'good',
+  bluechip: 'good',
+  rise60: 'good',
+  drop60: 'bad',
+  cold: 'bad',
+  volume: ''
+};
+
 function boardHTML(b) {
+  const tone = BOARD_TONE[b.id] || '';
   const rows = (b.stocks || []).map(s => `
     <button class="bc-row" onclick="App.openByCode('${s.code}')">
       <span class="bc-name">${esc(s.name)}</span>
       <span class="bc-code">${s.code}</span>
       <span class="bc-metric">${metricText(b.id, s)}</span>
     </button>`).join('');
-  return `<div class="bcard">
+  return `<div class="bcard${tone ? ' ' + tone : ''}">
     <div class="bc-head">
       <span class="bc-title">${esc(b.title)}</span>
       <a class="bc-all" href="market.html?theme=${encodeURIComponent(b.id)}">共 ${b.count} 只 ›</a>

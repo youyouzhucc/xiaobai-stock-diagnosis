@@ -212,7 +212,12 @@ body {
     display: flex; flex-direction: column;
     background: var(--card); border-radius: 12px; padding: 12px 12px 10px;
     box-shadow: 0 2px 10px rgba(60, 55, 50, .045);
+    /* 底部预留 2px，三种卡片高度一致；中性的留空，不画色条 */
+    border-bottom: 2px solid transparent;
 }
+/* 只分两类：偏机会绿、偏风险红。不随 hover 变化 */
+.bcard.good { border-bottom-color: #72A878; }
+.bcard.bad { border-bottom-color: #B87878; }
 .bc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
 .bc-title { font-size: 13.5px; font-weight: 700; letter-spacing: .2px; }
 .bc-all {
