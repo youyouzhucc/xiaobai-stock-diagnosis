@@ -1,4 +1,4 @@
-/* ===== 小白诊股 · 莫兰迪低饱和配色 ===== */
+﻿/* ===== 小白诊股 · 莫兰迪低饱和配色 ===== */
 :root {
     --bg: #F6F3ED;
     --card: #FFFFFF;
@@ -98,7 +98,6 @@ body {
 .mk-sent { font-size: 12.5px; font-weight: 600; padding: 4px 10px; border-radius: 6px; background: var(--fill-grey); color: var(--text-sub); }
 .mk-sent.warm { background: var(--fill-red); color: var(--red); }
 .mk-sent.cold { background: var(--fill-green); color: var(--green); }
-.mk-src { font-size: 11px; color: var(--text-weak); line-height: 1.55; margin-top: 8px; }
 
 /* ---------- 新手入门 ---------- */
 .tutor {
@@ -130,11 +129,13 @@ body {
     white-space: nowrap;
 }
 .guide-btn:hover { border-color: var(--blue); color: var(--blue); }
-.guide-q {
-    display: inline-flex; align-items: center; justify-content: center;
-    width: 15px; height: 15px; border-radius: 50%; background: var(--fill-blue);
-    color: var(--blue); font-size: 11px; font-weight: 700;
+/* 全站统一的小图标底座：搜索行两颗按钮、标题后面的问号都用这一个，颜色/尺寸/底纹完全一致 */
+.ib {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; border-radius: 50%; background: var(--fill-grey);
+    color: var(--text-sub); font-size: 11px; font-weight: 700; line-height: 1;
 }
+.ib svg { width: 11px; height: 11px; display: block; }
 
 /* 搜索行右侧第二颗按钮：设置我能买的。跟「新手看这里」同一套外观 */
 .perm-entry {
@@ -146,8 +147,19 @@ body {
 }
 .perm-entry:hover { border-color: var(--green); color: var(--green); }
 .perm-entry.on { border-color: var(--green); color: var(--green); }
-.perm-ic { width: 15px; height: 15px; flex: none; opacity: .72; }
-.perm-entry.on .perm-ic { opacity: 1; }
+.perm-entry.on .ib { background: var(--fill-green); color: var(--green); }
+
+/* 标题后面那个问号：点了讲这块数据怎么读 */
+.q-btn {
+    position: relative;
+    flex: none; width: 18px; height: 18px; border-radius: 50%; padding: 0;
+    border: none; background: var(--fill-grey); color: var(--text-sub);
+    font-family: inherit; font-size: 11px; font-weight: 700; line-height: 1;
+    cursor: pointer;
+}
+/* 视觉上是 18px 的小圆，但热区放大到 38px，别让人觉得点不动 */
+.q-btn::after { content: ''; position: absolute; inset: -10px; border-radius: 50%; }
+.q-btn:hover { background: var(--fill-blue); color: var(--blue); }
 
 /* ---------- 新股与上市排期 ---------- */
 .ipo-sec {
@@ -169,10 +181,32 @@ body {
 .ipo-mid { font-size: 11.5px; color: var(--text-sub); }
 .ipo-mid b { font-size: 13px; color: var(--text); font-weight: 700; margin-right: 2px; }
 .ipo-when { font-size: 11px; color: var(--text-weak); margin-top: 3px; }
-.ipo-tip {
-    font-size: 11.5px; color: var(--text-sub); line-height: 1.6;
-    margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line);
+
+/* ---------- 科普浮层（标题问号点开） ---------- */
+.know-mask {
+    position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
+    background: rgba(40, 36, 32, .35); padding: 20px;
 }
+.know-card {
+    width: min(560px, 100%); max-height: 82vh; overflow: auto; background: #fff;
+    border-radius: 14px; padding: 20px 22px 18px; box-shadow: 0 18px 50px rgba(40, 36, 32, .2);
+}
+.know-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.know-t { font-size: 16px; font-weight: 700; }
+.know-x {
+    border: none; background: none; font-size: 20px; line-height: 1; color: var(--text-weak);
+    cursor: pointer; padding: 0 2px; font-family: inherit;
+}
+.know-x:hover { color: var(--text); }
+.know-body { font-size: 13px; line-height: 1.85; color: var(--text-sub); }
+.know-body p { margin: 0 0 9px; }
+.know-body b { color: var(--text); font-weight: 700; }
+.know-body .know-warn {
+    margin-top: 4px; font-size: 12.5px; color: var(--orange); background: var(--fill-orange);
+    border-radius: 8px; padding: 9px 11px; line-height: 1.7;
+}
+.know-body ul { margin: 4px 0 9px; padding-left: 18px; }
+.know-body li { margin-bottom: 4px; }
 
 /* ---------- 新手浮层 ---------- */
 .guide-mask {
@@ -539,6 +573,38 @@ body {
 }
 .d-pricebar .big { font-size: 17px; font-weight: 700; color: var(--text); }
 .d-pricebar .pct { font-weight: 700; }
+
+/* ---------- 体检结论：分数只当体检报告，不当推荐度 ---------- */
+.d-health { font-size: 11.5px; font-weight: 700; margin-top: 5px; text-align: right; }
+.d-health.good { color: var(--green); }
+.d-health.warn { color: var(--orange); }
+.d-health.bad { color: var(--red); }
+.d-health.mid { color: var(--text-weak); }
+
+.weak {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+    border-radius: 10px; padding: 10px 13px; margin-top: 14px;
+    font-size: 13px; line-height: 1.65;
+}
+.weak.warn { background: var(--fill-orange); }
+.weak.bad { background: var(--fill-red); }
+.weak.good { background: var(--fill-green); }
+.weak-t { font-weight: 700; }
+.weak.warn .weak-t { color: var(--orange); }
+.weak.bad .weak-t { color: var(--red); }
+.weak.good .weak-t { color: var(--green); }
+.weak-w { margin-left: 8px;  color: var(--text-sub); }
+.score-note { font-size: 11.5px; color: var(--text-weak); line-height: 1.7; margin-top: 8px; }
+
+/* 卡片上的两字体检标签 */
+.hp {
+    font-size: 11px; font-weight: 700; padding: 1.5px 6px; border-radius: 4px;
+    margin-left: 3px; vertical-align: 2px; white-space: nowrap;
+}
+.hp.good { background: var(--fill-green); color: var(--green); }
+.hp.warn { background: var(--fill-orange); color: var(--orange); }
+.hp.bad { background: var(--fill-red); color: var(--red); }
+.hp.mid { background: var(--fill-grey); color: var(--text-sub); }
 
 .verdict {
     font-size: 15px; line-height: 1.65; font-weight: 600; color: var(--text);

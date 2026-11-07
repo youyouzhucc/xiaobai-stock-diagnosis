@@ -163,7 +163,12 @@ const fcap = v => v === null || v === undefined ? '—' : v >= 1e12 ? (v / 1e12)
 const fmoney = v => v === null || v === undefined ? '—' : Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(1) + '亿' : (v / 1e4).toFixed(0) + '万';
 const f1 = v => (v === null || v === undefined) ? '—' : v.toFixed(1);
 const cls = v => v === null ? 'flat' : v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
-const scoreColor = s => s === null ? 'var(--text-weak)' : s >= 80 ? 'var(--green)' : s >= 60 ? 'var(--orange)' : 'var(--text-weak)';
+/* 分数配色只表示体检档位：好的一档加深、差的一档也给颜色，不再让 60 以下变成看不见的灰 */
+const scoreColor = s => s === null ? 'var(--text-weak)'
+  : s >= 80 ? 'var(--green)'
+    : s >= 65 ? '#7C9186'
+      : s >= 50 ? 'var(--orange)'
+        : 'var(--red)';
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 /* ---------- 每日综合分快照（每天 12:05 由 Actions 算好，全天复用） ---------- */
@@ -221,6 +226,45 @@ function ipoItem(x, kind) {
   </a>`;
 }
 
+/* ---------- 标题后面的问号：点开讲这块数据怎么读 ---------- */
+const KNOW = {
+  market: {
+    t: '大盘数据怎么读',
+    body: `<p><b>涨跌家数</b>：全市场（沪深两市合并）当天有多少只在涨、多少只在跌。指数只看权重股，涨跌家数更能反映「多数人的票是好是坏」。</p>
+<p><b>两市成交额</b>：一天买卖了多少钱。放大说明分歧大、参与的人多；缩量说明大家都不想动手。</p>
+<p><b>为什么还写着 11-06</b>：休市日数据不动，显示的是最近一个交易日的收盘数据——「最近交易日」四个字就是这个意思。</p>
+<div class="know-warn">大盘只是背景板：指数涨，你手里的票照样可能跌。要不要买，回到它自己的体检报告上判断。</div>`
+  },
+  ipo: {
+    t: '打新与上市排期怎么用',
+    body: `<p><b>打新</b>是拿新股发行价去申购，中签了才付钱，上市第一天之后才能卖。</p>
+<p><b>门槛</b>：主板（60 / 00 开头）没门槛；创业板要 20 个交易日日均资产 ≥10 万、且交易满 2 年；科创板、北交所是 ≥50 万、满 2 年。</p>
+<p><b>风险</b>：新股不是稳赚。上市首日跌破发行价（叫「破发」）很常见，发行市盈率越高越要当心。</p>
+<div class="know-warn">这里只列交易所公布的申购日 / 上市日，不含「听说要上市」的传闻——传闻没法核实，也不该拿来当依据。</div>`
+  }
+};
+
+function openKnow(key) {
+  closeKnow();
+  const k = KNOW[key];
+  if (!k) return;
+  const mask = document.createElement('div');
+  mask.className = 'know-mask';
+  mask.innerHTML = `<div class="know-card">
+    <div class="know-h"><span class="know-t">${k.t}</span><button class="know-x" type="button" aria-label="关闭">×</button></div>
+    <div class="know-body">${k.body}</div>
+  </div>`;
+  mask.addEventListener('click', e => {
+    if (e.target === mask || e.target.classList.contains('know-x')) closeKnow();
+  });
+  document.body.appendChild(mask);
+}
+
+function closeKnow() {
+  const m = document.querySelector('.know-mask');
+  if (m) m.remove();
+}
+
 function renderIpo(j) {
   const up = j.upcoming || [];
   const rc = j.recent || [];
@@ -231,8 +275,7 @@ function renderIpo(j) {
   $('ipo-note').textContent = `交易所公布的新股排期，不含传闻 · 数据 ${j.date || ''}`;
   $('ipo-body').innerHTML = `
     ${up.length ? `<div class="ipo-grp-t">等着上市 / 还能申购</div><div class="ipo-grid">${up.map(x => ipoItem(x, 'wait')).join('')}</div>` : ''}
-    ${rc.length ? `<div class="ipo-grp-t">最近上市的</div><div class="ipo-grid">${rc.slice(0, 4).map(x => ipoItem(x, 'done')).join('')}</div>` : ''}
-    <div class="ipo-tip">打新就是按发行价申购，中签了才付钱，上市第一天才能卖。北交所、科创板要先开通权限，主板不用。</div>`;
+    ${rc.length ? `<div class="ipo-grp-t">最近上市的</div><div class="ipo-grid">${rc.slice(0, 4).map(x => ipoItem(x, 'done')).join('')}</div>` : ''}`;
 
   /* 已上市的走链接直接进详情；还没上市的拦下来，说清排期，别点进详情报「没查到」 */
   $('ipo-body').querySelectorAll('.ipo-item').forEach(el => {
@@ -366,6 +409,15 @@ async function init() {
   renderFilters();
   syncVersion();
   syncPermEntry();
+
+  /* 标题后面的问号统一在这里收点击，比写在内联 onclick 上稳 */
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-know]');
+    if (!b) return;
+    e.preventDefault();
+    openKnow(b.dataset.know);
+  });
+
   loadMarket();
   loadBoards();   // 榜单跟大盘并行拉，谁先回来谁先显示
   loadIpo();      // 新股排期同理，拿不到就整块不显示
@@ -996,8 +1048,9 @@ function cardHTML(it) {
     tags.push(tagOf('mid', '待体检'));
   }
 
+  const hp = healthOf(d && d.total);
   const score = d && d.total !== null
-    ? `<span class="si-score" style="color:${scoreColor(d.total)}">${d.total}<small>分</small></span>`
+    ? `<span class="si-score" style="color:${scoreColor(d.total)}" title="体检分：只看基本面有没有硬伤，不代表会涨">${d.total}<small>分</small></span><i class="hp ${hp.cls}">${hp.short}</i>`
     : `<span class="si-score pending">—</span>`;
 
   /* 三项固定占位：体检没跑完先显示「—」，数字补上来时行高不变，卡片不会被撑动 */
@@ -1021,7 +1074,7 @@ function cardHTML(it) {
       </div>
     </div>
     <div class="si-meta">
-      <span>综合 ${score}</span>
+      <span>体检 ${score}</span>
       <span>PE <b>${q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe)}</b></span>
       <span>PB <b>${f1(q.pb)}</b></span>
       <span>市值 <b>${fcap(q.mktcap)}</b></span>
@@ -1143,6 +1196,62 @@ async function kickMarketRank() {
   } finally {
     state.rankLoading = false;
   }
+}
+
+/* ---------- 体检结论：把「分数」翻译成「身体状况」，避免把高分当买入信号 ----------
+ * 分数只表示体检项有没有硬伤（像体检报告），不预测涨跌。所以展示时先给结论标签、再给最大短板。
+ */
+function healthOf(total) {
+  if (total === null || total === undefined) return { cls: 'mid', long: '数据不足，先别下结论', short: '待体检' };
+  if (total >= 80) return { cls: 'good', long: '体检良好 · 适合关注', short: '良好' };
+  if (total >= 65) return { cls: 'good', long: '体检尚可 · 放观察池', short: '尚可' };
+  if (total >= 50) return { cls: 'warn', long: '有疑点 · 先看短板', short: '存疑' };
+  return { cls: 'bad', long: '多项异常 · 慎碰', short: '慎碰' };
+}
+
+function scoreLine(d) {
+  if (!d || d.total === null) return '行情或财报还没拉全，综合分先空着——没有数据就不编分数。';
+  const p = [];
+  if (d.base !== null) p.push(`底子 ${d.base}`);
+  if (d.val !== null) p.push(`估值 ${d.val}`);
+  if (d.trend !== null) p.push(`趋势 ${d.trend}`);
+  if (d.risk !== null) p.push(`风险 ${d.risk}`);
+  return `${d.total} 分是这几项的加权结果：${p.join(' · ')}。分数只说明体检项有没有硬伤（像体检报告），不代表会涨，更不是买入信号。`;
+}
+
+/* 最大的那个短板：不管总分多少，先把最扎人的一条摆到最上面 */
+function weakestOf(it) {
+  const d = it.diag, q = it.quote, s = d && d.stats, f = it.fin || {};
+  if (!d || d.total === null) return null;
+  const dims = [
+    { k: 'base', v: d.base, name: '底子' },
+    { k: 'val', v: d.val, name: '估值' },
+    { k: 'trend', v: d.trend, name: '趋势' },
+    { k: 'risk', v: d.risk, name: '风险' }
+  ].filter(x => x.v !== null && x.v !== undefined);
+  if (!dims.length) return null;
+
+  const w = dims.reduce((a, b) => (a.v <= b.v ? a : b));
+  /* 四项都在 60 以上就不硬造短板，如实说「四项都过线」 */
+  if (w.v >= 60) return { cls: 'good', title: `最低的${w.name}也有 ${w.v} 分`, why: '看着健康，但健康不等于会涨，价格什么时候动还得看市场。' };
+
+  let why = '';
+  if (w.k === 'base') {
+    if (f.roe !== null && f.roe !== undefined && f.roe < 8) why = `ROE 只有 ${f1(f.roe)}%，股东投的钱赚回来很慢`;
+    else if (f.debtRatio !== null && f.debtRatio !== undefined && f.debtRatio >= 70) why = `资产负债率 ${f1(f.debtRatio)}%，靠借钱撑规模，利息一涨就难受`;
+    else if (f.cashPerShare !== null && f.cashPerShare !== undefined && f.cashPerShare <= 0) why = '每股经营现金流为负，账上利润没变成现金';
+    else why = '赚钱能力和财务结构都偏弱，景气一差就容易亏';
+  } else if (w.k === 'val') {
+    if (q.pe !== null && q.pe <= 0) why = '公司还在亏钱，PE 用不上，估值没有参照物';
+    else if (s && s.pos >= 75) why = `PE ${f1(q.pe)} 倍，价格已经处在近一年 ${s.pos.toFixed(0)}% 的高位，追高风险大`;
+    else why = `PE ${f1(q.pe)} 倍、PB ${f1(q.pb)}，比同行业明显贵，预期先透支了`;
+  } else if (w.k === 'trend') {
+    if (s && s.ret20 !== null) why = `近 20 个交易日 ${s.ret20 >= 0 ? '涨' : '跌'}了 ${Math.abs(s.ret20).toFixed(1)}%，还在 20 日均线下方，短期往下走`;
+    else why = '价格在 20 日均线下方，短期走势偏弱';
+  } else {
+    why = s ? `年化波动 ${s.vol.toFixed(0)}%、最深回撤 ${Math.abs(s.mdd).toFixed(0)}%，拿不住的人容易割在低点` : '波动偏大，不适合重仓';
+  }
+  return { cls: w.v <= 45 ? 'bad' : 'warn', title: w.name + ' ' + w.v + ' 分', why };
 }
 
 function verdictOf(it) {
@@ -1441,6 +1550,8 @@ function renderDetail(it) {
   const adv = adviceOf(it);
   const odds = oddsOf(it);
   const def = defenseOf(it);
+  const hp = healthOf(d && d.total);
+  const w = weakestOf(it);
 
   const finNote = fin
     ? `财报口径：${esc(fin.report)}${fin.notice ? ' · 披露于 ' + esc(fin.notice) : ''}`
@@ -1488,9 +1599,16 @@ function renderDetail(it) {
       </div>
       <div class="d-score-wrap">
         <div class="d-score" style="background:${scoreColor(d.total)}">${d.total === null ? '—' : d.total}<small>分</small></div>
+        <div class="d-health ${hp.cls}">${hp.long}</div>
         <div class="d-rank" id="d-rank">全市场排名加载中…</div>
       </div>
     </div>
+
+    ${w ? `<div class="weak ${w.cls}">
+      <span class="weak-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}</span>
+      <span class="weak-w">${w.why}</span>
+    </div>` : ''}
+    <div class="score-note">${scoreLine(d)}</div>
 
     <div class="d-pricebar">
       <span>现价 <span class="big">${f2(q.price)}</span></span>
@@ -1500,7 +1618,6 @@ function renderDetail(it) {
       <span>市值 ${fcap(q.mktcap)}</span>
     </div>
 
-    <div class="verdict">${verdictOf(it)}</div>
     ${gateHTML(q.code)}
   </div>
 
@@ -1877,6 +1994,6 @@ document.addEventListener('click', e => {
 
 window.addEventListener('resize', () => { if (state.chart) state.chart.resize(); });
 
-window.App = { openDetail, openByCode, goHome, setRange, toggleDw, pick, openPerm, closePerm, applyPerm, toggleOnlyMine, savePreset, usePreset, delPreset };
+window.App = { openDetail, openByCode, goHome, setRange, toggleDw, pick, openPerm, closePerm, applyPerm, toggleOnlyMine, savePreset, usePreset, delPreset, openKnow, closeKnow };
 
 init();
