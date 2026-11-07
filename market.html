@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>全市场 A 股 · 小白诊股</title>
   <meta name="description" content="沪深 A 股全市场列表，支持按行业类型、市值、市盈率、涨跌、活跃度筛选，以及按涨跌幅、市值、估值、换手率排序。">
-  <link rel="stylesheet" href="css/style.css?v=17">
+  <link rel="stylesheet" href="css/style.css?v=21">
   <link rel="preconnect" href="https://push2.eastmoney.com" crossorigin>
   <style>
     .mkt-head { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
@@ -37,6 +37,36 @@
     .mk-count b { color: var(--text-sub); font-weight: 600; }
     .mk-count .bar { display: inline-block; width: 90px; height: 4px; background: var(--line); border-radius: 3px; vertical-align: middle; margin: 0 6px; overflow: hidden; }
     .mk-count .bar i { display: block; height: 100%; background: var(--green); border-radius: 3px; transition: width .2s; }
+
+    /* ---------- 主题快捷入口 ---------- */
+    .theme-bar { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(60,55,50,.04); }
+    .th-list { display: flex; flex-wrap: wrap; gap: 7px; }
+    .th-chip {
+      border: 1px solid var(--line-strong); background: #fff; color: var(--text-sub);
+      font-size: 12.5px; font-family: inherit; padding: 7px 12px; border-radius: 16px; cursor: pointer;
+      transition: border-color .12s, background .12s, color .12s;
+    }
+    .th-chip:hover { border-color: var(--text-weak); color: var(--text); }
+    .th-chip.on { background: var(--fill-green); border-color: var(--green); color: var(--green); font-weight: 600; }
+    .th-chip .th-x { margin-left: 6px; opacity: .7; }
+    .th-hint { font-size: 12px; color: var(--text-weak); line-height: 1.7; margin-top: 9px; }
+    .th-hint b { color: var(--text-sub); font-weight: 600; }
+
+    /* ---------- 行业风向 ---------- */
+    .ind-card { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(60,55,50,.04); }
+    .ind-head { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+    .ind-sub { font-size: 11.5px; color: var(--text-weak); font-weight: 400; margin-left: 8px; line-height: 1.6; }
+    .ind-row { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-bottom: 7px; }
+    .ind-lab { font-size: 11.5px; color: var(--text-weak); flex: none; width: 26px; }
+    .ind-chip {
+      display: inline-flex; align-items: baseline; gap: 6px; cursor: pointer;
+      border: 1px solid var(--line); background: var(--bg); border-radius: 8px;
+      padding: 5px 9px; font-family: inherit; text-align: left;
+    }
+    .ind-chip:hover { border-color: var(--line-strong); background: #fff; }
+    .ind-name { font-size: 12.5px; color: var(--text); font-weight: 500; }
+    .ind-chip b { font-size: 12px; font-weight: 700; }
+    .ind-chip i { font-size: 10.5px; font-style: normal; color: var(--text-weak); }
 
     #list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
     .row {
@@ -86,13 +116,16 @@
   <div class="mkt-head">
     <a class="mkt-back" href="./index.html">返回精选池</a>
     <span class="mkt-title">全市场 A 股</span>
-    <span class="ver">v16</span>
+    <span class="ver">v21</span>
   </div>
   <div class="mkt-sub">沪深两市共 <b id="total">—</b> 只。整张表一次性载入，之后筛选、排序、翻页都在本地算，不用再等网络。</div>
 
   <div class="mkt-search">
     <input type="text" id="search-input" inputmode="numeric" placeholder="输入 6 位代码直达体检，如 600519，回车">
   </div>
+
+  <!-- 主题入口：点一下自动筛好、排好 -->
+  <div class="theme-bar" id="theme-bar"></div>
 
   <div class="mk-bar">
     <div class="mk-filters" id="mk-filters" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"></div>
@@ -101,17 +134,23 @@
     <select id="mk-sort" class="mk-sel">
       <option value="code">代码（小 → 大）</option>
       <option value="score">综合分数（高 → 低）</option>
-      <option value="pct_desc">今天涨得最多</option>
-      <option value="pct_asc">今天跌得最多</option>
+      <option value="pct_desc">最近交易日涨得最多</option>
+      <option value="pct_asc">最近交易日跌得最多</option>
+      <option value="d60_desc">近两月涨得最多</option>
+      <option value="d60_asc">近两月跌得最多</option>
       <option value="cap_desc">市值最大</option>
       <option value="pe_asc">市盈率最低（最便宜）</option>
       <option value="pb_asc">市净率最低</option>
       <option value="turn_desc">换手率最高（最活跃）</option>
+      <option value="turn_asc">换手率最低（最少人买卖）</option>
       <option value="vr_desc">量比最高（突然放量）</option>
     </select>
   </div>
 
   <div class="mk-count" id="mk-count">正在拉取全市场数据…</div>
+
+  <!-- 行业风向：全市场按行业聚平均涨跌 -->
+  <div class="ind-card" id="ind-card"></div>
 
   <div id="list"><div class="empty">正在拉取…</div></div>
 
@@ -127,10 +166,10 @@
   <div class="mkt-tip">
     <b>关于「综合分数」</b>：精选池的分数由定时任务每天 12:05 算好一次，写进 data/scores.json，全天复用。<br>
     其余 5000 多只要逐只拉 K 线和财报才算得出，你在这里点开过的股票会自动记下分数，排序时分数高的排前面。<br>
-    股息率 = 最近 12 个月实际派现 / 现价（税前）；换手率和量比来自今日实时行情。<br>
-    行情来自东方财富公开接口，可能存在延迟。本页仅为客观数据整理，不构成投资建议。
+    涨跌幅、换手率、量比都取<b>最近一个交易日</b>的行情，休市日显示的就是上一个交易日的数，所以不写「今日」；「近两月」是近 60 个交易日的累计涨跌，接口自带，不是估算。<br>
+    股息率 = 最近 12 个月实际派现 / 现价（税前）。行情来自东方财富公开接口，可能存在延迟。本页仅为客观数据整理，不构成投资建议。
   </div>
 </div>
-<script src="js/market.js?v=17"></script>
+<script src="js/market.js?v=21"></script>
 </body>
 </html>

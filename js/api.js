@@ -1,4 +1,4 @@
-/* 数据获取层
+﻿/* 数据获取层
  * 行情 / 财务 / 历史 K 线：东方财富公开接口（均支持跨域）
  */
 const API = (() => {
@@ -197,10 +197,10 @@ const API = (() => {
    * 注意这个接口用 fltt=2，字段已是小数，不能套 d2()（×100）
    */
   async function market() {
-    const saved = ssGet('api:market');
+    const saved = ssGet('api:market:v2');
     if (saved) return saved;
     const url = `${QUOTE}?fltt=2&secids=1.000001,0.399001,0.399006,1.000300` +
-      `&fields=f2,f3,f4,f6,f12,f14,f104,f105,f106&_=${Date.now()}`;
+      `&fields=f2,f3,f4,f6,f12,f14,f104,f105,f106,f124&_=${Date.now()}`;
     const json = await getJSON(url, 10000);
     const diff = json && json.data && json.data.diff;
     if (!diff) throw new Error('大盘数据为空');
@@ -212,11 +212,12 @@ const API = (() => {
       pct: num(d.f3),
       change: num(d.f4),
       amount: num(d.f6),     // 成交额（元）
+      at: num(d.f124),       // 行情更新时间戳（秒），用来标注数据时点
       rise: num(d.f104),     // 上涨家数
       fall: num(d.f105),     // 下跌家数
       flat: num(d.f106)      // 平盘家数
     }));
-    ssSet('api:market', list);
+    ssSet('api:market:v2', list);
     return list;
   }
 

@@ -188,6 +188,12 @@ body {
     background: var(--fill-grey); padding: 2px 7px; border-radius: 4px;
 }
 .market-entry i { font-style: normal; font-size: 15px; color: var(--text-weak); }
+.market-entry em {
+    display: block; margin-top: 3px;
+    font-style: normal; font-size: 11px; font-weight: 400; color: var(--text-weak);
+    letter-spacing: .2px;
+}
+.market-entry:hover em { color: var(--green); }
 .market-entry:hover i { color: var(--green); }
 
 /* 搜索 6 位代码时出现的直查卡片 */

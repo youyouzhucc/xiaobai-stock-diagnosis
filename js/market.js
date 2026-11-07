@@ -3,7 +3,8 @@ const PAGE_SIZE = 50;       // 每屏显示多少只
 const FETCH_SIZE = 100;     // 接口单次最多给 100 条
 const CLIST = 'https://push2.eastmoney.com/api/qt/clist/get';
 const FS = 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23';
-const FIELDS = 'f2,f3,f8,f9,f10,f12,f13,f14,f20,f23,f100';
+/* f24 = 近 60 个交易日涨跌幅，f25 = 年初至今涨跌幅，都是接口自带的真实统计，不用额外拉 K 线 */
+const FIELDS = 'f2,f3,f8,f9,f10,f12,f13,f14,f20,f23,f24,f25,f100';
 
 const $ = id => document.getElementById(id);
 const num = v => (typeof v === 'number' && !Number.isNaN(v)) ? v : null;
@@ -92,10 +93,71 @@ const FILTERS = [
     ]
   },
   {
-    key: 'chg', all: '今日涨跌', opts: [
+    /* 涨跌幅、换手率都是「最近一个交易日」的值，休市日显示的仍是上一个交易日，
+       所以不能叫「今日」，否则节假日打开会被误读 */
+    key: 'chg', all: '最近交易日涨跌', opts: [
       { v: 'up', t: '上涨' },
       { v: 'down', t: '下跌' }
     ]
+  }
+];
+
+/* ---------- 主题（给小白用的入口，一次点一下就是一组条件 + 排序） ----------
+ * 每个主题：一句话说明「看的是什么」，外加一句「别误读成什么」。
+ * 数字全部来自接口真实字段，没有估算。
+ */
+/* 榜单里不放退市整理、ST（风险警示）和停牌股：
+ * 这些票的极端涨跌是制度性原因造成的，放在「跌最狠」里对新手是误导 */
+const tradable = d => {
+  const name = String(d.f14 || '');
+  if (/退|ST/i.test(name)) return false;
+  if (num(d.f2) === null || num(d.f2) <= 0) return false;
+  if (num(d.f8) !== null && num(d.f8) === 0 && num(d.f3) !== null && num(d.f3) === 0) return false; // 停牌
+  return true;
+};
+
+const THEMES = [
+  {
+    id: 'cheap',
+    label: '估值最便宜',
+    sort: 'pe_asc',
+    hint: '按市盈率从低到高排，只列真正赚钱的（PE 为正）。便宜不等于好，也可能是行业走下坡。',
+    test: d => tradable(d) && num(d.f9) >= 1
+  },
+  {
+    id: 'bluechip',
+    label: '便宜的大块头',
+    sort: 'pe_asc',
+    hint: '市值 1000 亿以上、市盈率 20 倍以内。大盘股波动小，适合当底仓看，但涨得也慢。',
+    test: d => tradable(d) && num(d.f20) >= 1e11 && num(d.f9) >= 1 && num(d.f9) <= 20
+  },
+  {
+    id: 'drop60',
+    label: '近两月跌最狠',
+    sort: 'd60_asc',
+    hint: '近 60 个交易日跌得最多的。跌得多不代表会反弹，先看是行业整体下滑还是自己出问题。',
+    test: d => tradable(d) && num(d.f24) !== null && num(d.f24) <= -20
+  },
+  {
+    id: 'rise60',
+    label: '近两月涨最猛',
+    sort: 'd60_desc',
+    hint: '近 60 个交易日涨得最多的。涨得猛也可能是情绪推的，追高前先看估值贵不贵。',
+    test: d => tradable(d) && num(d.f24) !== null && num(d.f24) >= 20
+  },
+  {
+    id: 'volume',
+    label: '突然放量',
+    sort: 'vr_desc',
+    hint: '量比 2 以上，最近一个交易日每分钟成交是过去 5 天均量的两倍以上。放量常见于消息或资金异动，方向可能是涨也可能是跌。',
+    test: d => tradable(d) && num(d.f10) >= 2
+  },
+  {
+    id: 'cold',
+    label: '没人搭理',
+    sort: 'turn_asc',
+    hint: '换手率不到 1%，买卖都清淡。想买容易、想卖可能卖不掉，适合能长期拿着的人。',
+    test: d => tradable(d) && num(d.f8) !== null && num(d.f8) < 1 && num(d.f9) >= 1
   }
 ];
 
@@ -107,7 +169,7 @@ const state = {
   failed: [],
   firstPaint: false,
   page: 1,
-  f: { type: '', cap: '', pe: '', heat: '', chg: '' },
+  f: { type: '', cap: '', pe: '', heat: '', chg: '', theme: '', ind: '' },
   sort: 'code',
   scores: new Map(),
   loading: false
@@ -233,6 +295,13 @@ function match(d) {
   const f = state.f;
   if (f.type && typeOf(d.f100) !== f.type) return false;
 
+  if (f.ind && String(d.f100 || '').replace(/[ⅠⅡⅢ]+$/g, '') !== f.ind) return false;
+
+  if (f.theme) {
+    const th = THEMES.find(t => t.id === f.theme);
+    if (!th || !th.test(d)) return false;
+  }
+
   if (f.cap) {
     const c = num(d.f20);
     if (c === null) return false;
@@ -277,7 +346,25 @@ function sortList(list) {
     pct_asc: (a, b) => (num(a.f3) || 999) - (num(b.f3) || 999),
     cap_desc: (a, b) => (num(b.f20) || -1) - (num(a.f20) || -1),
     turn_desc: (a, b) => (num(b.f8) || -1) - (num(a.f8) || -1),
+    turn_asc: (a, b) => {
+      const ta = num(a.f8), tb = num(b.f8);
+      const ka = ta === null ? Infinity : ta;
+      const kb = tb === null ? Infinity : tb;
+      return ka - kb;
+    },
     vr_desc: (a, b) => (num(b.f10) || -1) - (num(a.f10) || -1),
+    d60_desc: (a, b) => {
+      const pa = num(a.f24), pb = num(b.f24);
+      const ka = pa === null ? -Infinity : pa;
+      const kb = pb === null ? -Infinity : pb;
+      return kb - ka;
+    },
+    d60_asc: (a, b) => {
+      const pa = num(a.f24), pb = num(b.f24);
+      const ka = pa === null ? Infinity : pa;
+      const kb = pb === null ? Infinity : pb;
+      return ka - kb;
+    },
     pe_asc: (a, b) => {
       const pa = num(a.f9), pb = num(b.f9);
       const ka = (pa === null || pa <= 0) ? Infinity : pa;
@@ -344,7 +431,7 @@ function rowHTML(d) {
       <span>PB <b>${f1(d.f23)}</b></span>
       <span>市值 <b>${fcap(d.f20)}</b></span>
       <span>换手 <b>${f2(d.f8)}%</b></span>
-      <span>量比 <b>${f2(d.f10)}</b></span>
+      <span>近两月 <b class="${cls(d.f24)}">${fpct(d.f24)}</b></span>
     </div>
   </div>`;
 }
@@ -367,6 +454,8 @@ function render() {
   $('btn-jump').value = state.page;
   $('jump-wrap').style.display = pages > 1 ? 'flex' : 'none';
   updateProgress();
+  renderThemes();
+  renderIndustry();
 }
 
 function goto(pn) {
@@ -379,9 +468,137 @@ function goto(pn) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+/* ---------- 主题入口 ----------
+ * 点一下 = 清空其它下拉 + 套一组真实条件 + 换好排序。
+ * 用 state.batch 抑制下拉联动时的多次重渲染。
+ */
+function syncAllSelects() {
+  state.batch = true;
+  document.querySelectorAll('#mk-filters select').forEach(s => {
+    s.value = state.f[s.dataset.key] || '';
+    s.classList.toggle('on', !!s.value);
+    s.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  const sortSel = $('mk-sort');
+  if (sortSel) {
+    sortSel.value = state.sort;
+    sortSel.classList.toggle('on', state.sort !== 'code');
+    sortSel.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  state.batch = false;
+}
+
+function applyTheme(id) {
+  const th = THEMES.find(t => t.id === id);
+  if (!th) return;
+  const same = state.f.theme === id;
+  state.f = { type: '', cap: '', pe: '', heat: '', chg: '', theme: same ? '' : id, ind: '' };
+  state.sort = same ? 'code' : th.sort;
+  state.page = 1;
+  syncAllSelects();
+  syncURL();
+  render();
+}
+
+function renderThemes() {
+  const box = $('theme-bar');
+  if (!box) return;
+  const cur = THEMES.find(t => t.id === state.f.theme);
+  const chips = THEMES.map(t =>
+    `<button type="button" class="th-chip${state.f.theme === t.id ? ' on' : ''}" data-th="${t.id}">${t.label}</button>`
+  ).join('') + (state.f.ind
+    ? `<button type="button" class="th-chip on" data-clear-ind="1">行业：${esc(state.f.ind)}<span class="th-x">×</span></button>`
+    : '');
+
+  const hint = cur
+    ? `<b>${cur.label}</b>：${cur.hint}`
+    : (state.f.ind
+      ? `<b>${esc(state.f.ind)}</b>：该行业里的股票，按最近交易日涨幅从高到低排。`
+      : '不知道从哪看？点一个主题，它会自动帮你筛好条件、排好序。');
+
+  box.innerHTML = `<div class="th-list">${chips}</div><div class="th-hint">${hint}</div>`;
+
+  box.querySelectorAll('.th-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.clearInd) {
+        state.f.ind = '';
+        state.f.theme = '';
+        state.sort = 'code';
+        state.page = 1;
+        syncAllSelects();
+        syncURL();
+        render();
+        return;
+      }
+      applyTheme(btn.dataset.th);
+    });
+  });
+}
+
+/* ---------- 行业风向 ----------
+ * 把全市场按行业聚合，算平均涨跌幅与上涨占比。样本少于 5 只的行业不参与，
+ * 避免某个只有一只票的行业靠单只异动冲到榜首。
+ */
+function industryRank() {
+  const map = new Map();
+  state.rows.forEach(d => {
+    const p = num(d.f3);
+    if (p === null) return;
+    const name = String(d.f100 || '').replace(/[ⅠⅡⅢ]+$/g, '') || '未分类';
+    let o = map.get(name);
+    if (!o) { o = { n: 0, sum: 0, up: 0 }; map.set(name, o); }
+    o.n++; o.sum += p;
+    if (p > 0) o.up++;
+  });
+  return Array.from(map.entries())
+    .filter(([, o]) => o.n >= 5)
+    .map(([name, o]) => ({ name, n: o.n, avg: o.sum / o.n, upRatio: o.up / o.n }))
+    .sort((a, b) => b.avg - a.avg);
+}
+
+let indCacheKey = '';
+function renderIndustry() {
+  const box = $('ind-card');
+  if (!box) return;
+  const key = `${state.loaded}/${state.pages}:${state.rows.length}`;
+  if (key === indCacheKey) return;
+  indCacheKey = key;
+
+  if (state.loaded < state.pages) {
+    box.innerHTML = `<div class="ind-head">行业风向</div>
+      <div class="ind-sub">等全市场载入完再统计，否则会漏掉还没载入的行业。</div>`;
+    return;
+  }
+
+  const list = industryRank();
+  if (!list.length) { box.innerHTML = ''; return; }
+  const top = list.slice(0, 5);
+  const bottom = list.slice(-5).reverse();
+
+  const chip = x => `<button type="button" class="ind-chip" data-ind="${esc(x.name)}">
+      <span class="ind-name">${esc(x.name)}</span>
+      <b class="${cls(x.avg)}">${fpct(x.avg)}</b>
+      <i>${x.n} 只 · ${Math.round(x.upRatio * 100)}% 上涨</i>
+    </button>`;
+
+  box.innerHTML = `<div class="ind-head">行业风向<span class="ind-sub">最近交易日，该行业所有股票的平均涨跌（样本少于 5 只不计）</span></div>
+    <div class="ind-row"><span class="ind-lab">最强</span>${top.map(chip).join('')}</div>
+    <div class="ind-row"><span class="ind-lab">最弱</span>${bottom.map(chip).join('')}</div>`;
+
+  box.querySelectorAll('.ind-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.f = { type: '', cap: '', pe: '', heat: '', chg: '', theme: '', ind: btn.dataset.ind };
+      state.sort = 'pct_desc';
+      state.page = 1;
+      syncAllSelects();
+      syncURL();
+      render();
+    });
+  });
+}
+
 /* ---------- 筛选栏 ---------- */
-function buildFilters() {
-  const box = $('mk-filters');
+function buildFilters() {  const box = $('mk-filters');
   box.innerHTML = FILTERS.map(def => `
     <select class="mk-sel" data-key="${def.key}">
       <option value="">${def.all}</option>
@@ -392,11 +609,87 @@ function buildFilters() {
     sel.addEventListener('change', () => {
       state.f[sel.dataset.key] = sel.value;
       sel.classList.toggle('on', !!sel.value);
+      if (state.batch) return;   // 主题/行业一次改多个条件时，统一渲染一次
       state.page = 1;
       syncURL();
       render();
     });
   });
+}
+
+/* ---------- 把原生 select 换成和首页一致的自定义下拉 ----------
+ * 原生 select 的收起态、展开菜单由操作系统绘制，跟首页的莫兰迪风格对不上。
+ * 这里保留原生 select 作为数据源（值、change 事件照旧），上面盖一层同款 .dw 组件。
+ */
+function closeAllDwMenus(except) {
+  document.querySelectorAll('.dw-menu').forEach(m => {
+    if (m !== except) m.classList.remove('show');
+  });
+}
+
+function skinSelect(sel) {
+  if (!sel || sel.dataset.skinned === '1') return;
+  sel.dataset.skinned = '1';
+
+  const isSort = sel.id === 'mk-sort';
+  const wrap = document.createElement('div');
+  wrap.className = 'dw';
+
+  const trig = document.createElement('button');
+  trig.type = 'button';
+  trig.className = 'dw-trigger';
+
+  const arrow = document.createElement('span');
+  arrow.className = 'dw-arrow';
+
+  const menu = document.createElement('div');
+  menu.className = 'dw-menu';
+
+  const sync = () => {
+    const cur = sel.options[sel.selectedIndex];
+    trig.textContent = cur ? cur.textContent.trim() : '全部';
+    trig.title = trig.textContent;
+    const active = isSort ? sel.value !== 'code' : !!sel.value;
+    trig.classList.toggle('on', active);
+    menu.innerHTML = Array.from(sel.options).map((op, i) =>
+      `<div class="dw-item${i === sel.selectedIndex ? ' on' : ''}" data-i="${i}">${op.textContent.trim()}</div>`
+    ).join('');
+  };
+
+  trig.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = menu.classList.contains('show');
+    closeAllDwMenus(menu);
+    menu.classList.toggle('show', !open);
+  });
+
+  menu.addEventListener('click', e => {
+    e.stopPropagation();
+    const item = e.target.closest('.dw-item');
+    if (!item) return;
+    const i = +item.dataset.i;
+    if (sel.selectedIndex !== i) {
+      sel.selectedIndex = i;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    sync();
+    menu.classList.remove('show');
+  });
+
+  sel.addEventListener('change', sync);
+
+  sel.style.display = 'none';
+  wrap.appendChild(trig);
+  wrap.appendChild(arrow);
+  wrap.appendChild(menu);
+  sel.parentNode.insertBefore(wrap, sel);
+  sync();
+}
+
+function skinAllSelects() {
+  document.querySelectorAll('#mk-filters select, #mk-sort').forEach(skinSelect);
+  document.addEventListener('click', () => closeAllDwMenus(null));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeAllDwMenus(null); });
 }
 
 /* 把当前筛选/排序同步到地址栏，刷新或分享都能保留状态 */
@@ -433,10 +726,18 @@ document.addEventListener('DOMContentLoaded', () => {
   $('mk-sort').addEventListener('change', e => {
     state.sort = e.target.value;
     e.target.classList.toggle('on', state.sort !== 'code');
+    if (state.batch) return;
     state.page = 1;
     syncURL();
     render();
   });
+
+  /* 等地址栏参数恢复完、change 监听都挂好，再套上首页同款下拉皮 */
+  skinAllSelects();
+
+  /* 主题与行业风向不依赖行情载入，先把入口摆出来 */
+  renderThemes();
+  renderIndustry();
 
   $('btn-prev').addEventListener('click', () => goto(state.page - 1));
   $('btn-next').addEventListener('click', () => goto(state.page + 1));

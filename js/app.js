@@ -1,4 +1,4 @@
-/* 小白诊股 · 页面逻辑 */
+﻿/* 小白诊股 · 页面逻辑 */
 
 const POOL = [
   { secid: '1.600519', name: '贵州茅台', py: 'gzmt' },
@@ -67,7 +67,7 @@ const FILTER_DEFS = [
     ]
   },
   {
-    key: 'heat', label: '今日活跃度', opts: [
+    key: 'heat', label: '换手活跃度', opts: [
       { v: '', t: '不限' },
       { v: 'quiet', t: '冷清 · 换手不到 1%' },
       { v: 'normal', t: '正常 · 换手 1-3%' },
@@ -88,7 +88,7 @@ const FILTER_DEFS = [
   { key: 'strategy', label: '资金期限', opts: [{ v: '', t: '不限' }, { v: 'long', t: '长期闲钱' }, { v: 'short', t: '短期波段' }] },
   { key: 'risk', label: '风险承受', opts: [{ v: '', t: '不限' }, { v: 'low', t: '稳健保守' }, { v: 'high', t: '追求弹性' }] },
   { key: 'focus', label: '更看重', opts: [{ v: '', t: '不限' }, { v: 'base_good', t: '底子扎实' }, { v: 'val_low', t: '估值便宜' }, { v: 'trend_up', t: '趋势向上' }] },
-  { key: 'chg', label: '今日涨跌', opts: [{ v: '', t: '不限' }, { v: 'up', t: '上涨' }, { v: 'down', t: '下跌' }] }
+  { key: 'chg', label: '最近交易日涨跌', opts: [{ v: '', t: '不限' }, { v: 'up', t: '上涨' }, { v: 'down', t: '下跌' }] }
 ];
 
 /* 行业 -> 股票类型（东财行业名末尾常带 Ⅱ/Ⅲ 序号，先去掉再匹配）
@@ -335,7 +335,28 @@ async function loadMarket() {
     sent.textContent = txt + extra;
     sent.className = 'mk-sent ' + tone;
 
-    $('mk-time').textContent = '更新 ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    /* 用行情自带的时间戳标注「数据时点」：非交易日一眼能看出这是上一个交易日的数据，
+       不会被「今日」两个字误导 */
+    const stamps = idx.map(x => x.at).filter(v => typeof v === 'number' && v > 0);
+    const at = stamps.length ? Math.max.apply(null, stamps) : null;
+    const titleEl = $('mk-title');
+
+    if (at) {
+      const d = new Date(at * 1000);
+      const p = n => String(n).padStart(2, '0');
+      const now = new Date();
+      const sameDay = d.getFullYear() === now.getFullYear()
+        && d.getMonth() === now.getMonth()
+        && d.getDate() === now.getDate();
+      if (titleEl) titleEl.textContent = sameDay ? '今日大盘' : '大盘概况 · 最近交易日';
+      /* 同一天才显示到分钟，跨天只到日期，避免拿盘后入库时间当成交时间误读 */
+      $('mk-time').textContent = sameDay
+        ? `数据时点 ${p(d.getHours())}:${p(d.getMinutes())}`
+        : `数据时点 ${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    } else {
+      if (titleEl) titleEl.textContent = '大盘概况';
+      $('mk-time').textContent = '更新 ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+    }
   } catch (e) {
     box.innerHTML = '';
     $('mk-nums').textContent = '大盘数据暂时取不到，稍后刷新试试';
@@ -805,7 +826,7 @@ function verdictOf(it) {
 function heatOf(q) {
   const t = q.turnover;
   if (t === null) return { icon: '🌤', text: '换手率数据缺失。' };
-  if (t >= 8) return { icon: '🔥', text: `当前热度：非常拥挤。换手率 ${f2(t)}%，今天换手极快，短线资金进进出出，追高风险大。` };
+  if (t >= 8) return { icon: '🔥', text: `当前热度：非常拥挤。换手率 ${f2(t)}%，最近交易日换手极快，短线资金进进出出，追高风险大。` };
   if (t >= 4) return { icon: '☀️', text: `当前热度：偏热。换手率 ${f2(t)}%，交易活跃度在中上水平。` };
   if (t >= 1.5) return { icon: '🌤', text: `当前热度：正常。换手率 ${f2(t)}%，没有明显的抢筹或抛售。` };
   return { icon: '❄️', text: `当前热度：冷门。换手率只有 ${f2(t)}%，买卖清淡，没什么人挤在这里。` };
@@ -1062,8 +1083,8 @@ function renderDetail(it) {
       <span class="st-concl">${heatConcl(q)}</span>
     </div>
     <div class="kv-grid">
-      <div class="kv"><div class="kv-label"><span class="term" data-term="turnover">换手率</span></div><div class="kv-val">${q.turnover === null ? '—' : f1(q.turnover) + '%'}</div><div class="kv-desc">今天有多大比例的流通股被买卖过</div></div>
-      <div class="kv"><div class="kv-label"><span class="term" data-term="volratio">量比</span></div><div class="kv-val">${q.volratio === null ? '—' : f2(q.volratio)}</div><div class="kv-desc">今天每分钟的成交量，是过去 5 天平均的几倍</div></div>
+      <div class="kv"><div class="kv-label"><span class="term" data-term="turnover">换手率</span></div><div class="kv-val">${q.turnover === null ? '—' : f1(q.turnover) + '%'}</div><div class="kv-desc">最近交易日有多大比例的流通股被买卖过</div></div>
+      <div class="kv"><div class="kv-label"><span class="term" data-term="volratio">量比</span></div><div class="kv-val">${q.volratio === null ? '—' : f2(q.volratio)}</div><div class="kv-desc">最近交易日每分钟的成交量，是过去 5 天平均的几倍</div></div>
       <div class="kv"><div class="kv-label"><span class="term" data-term="dividend">股息率</span></div><div class="kv-val">${divv && divv.yieldPct !== null ? f2(divv.yieldPct) + '%' : '—'}</div><div class="kv-desc">按最近 12 个月真金白银派过的现金算</div></div>
       <div class="kv"><div class="kv-label">近一年派现</div><div class="kv-val" style="font-size:15px">${divv && divv.count ? `${divv.count} 次 · 每股 ${f2(divv.dps)} 元` : '没有分红'}</div><div class="kv-desc">${divv && divv.lastDate ? '最近一次除息日 ' + divv.lastDate : '派现数据来自分红实施记录'}</div></div>
     </div>
@@ -1347,8 +1368,8 @@ const DICT = {
   vol: ['年化波动率', '把最近 60 个交易日的日涨跌幅度折算成一整年的波动幅度。数值越大，股价越颠簸。', '年化波动 50% 意味着一年里上下三成的起伏很正常，心脏不够强就别重仓。'],
   mdd: ['最大回撤', '过去一年里，从阶段最高点跌到最低点的最大跌幅。它衡量的是「最难受的时候有多难受」。', '一只股票从 100 元涨到 120 元又跌到 80 元，最大回撤就是 33%。'],
   odds: ['赔率', '向上空间和向下空间的比例。赔率 3 倍意味着潜在涨幅是潜在跌幅的 3 倍。', '向下最多亏 10%、向上可能赚 30%，赔率就是 3。'],
-  turnover: ['换手率', '今天成交的股数占流通股的百分比。换手率高说明这只股票今天买卖的人多、分歧大；换手率长期低于 1% 说明没人搭理，想卖可能卖不掉。', '一家公司流通 100 亿股，今天成交 3 亿股，换手率就是 3%。'],
-  volratio: ['量比', '今天平均每分钟的成交量，除以过去 5 个交易日同一时刻的平均成交量。大于 1 说明今天比平时更活跃，突然放到 3 倍以上往往是有消息。', '量比 2.0 = 今天每分钟的成交是平时的 2 倍，说明有人在集中买卖。'],
+  turnover: ['换手率', '最近一个交易日成交的股数占流通股的百分比。换手率高说明这只股票买卖的人多、分歧大；换手率长期低于 1% 说明没人搭理，想卖可能卖不掉。', '一家公司流通 100 亿股，某一天成交 3 亿股，换手率就是 3%。'],
+  volratio: ['量比', '最近一个交易日平均每分钟的成交量，除以过去 5 个交易日同一时刻的平均成交量。大于 1 说明比平时更活跃，突然放到 3 倍以上往往是有消息。', '量比 2.0 = 最近交易日每分钟的成交是平时的 2 倍，说明有人在集中买卖。'],
   dividend: ['股息率', '最近 12 个月公司真金白银派给你的现金，除以现在的股价。它是「光靠分红几年能回本」的粗略尺度，不含卖出收益，也不考虑分红税。', '股价 100 元、一年每股派 3 元，股息率就是 3%。注意这是税前的现金分红。']
 };
 
