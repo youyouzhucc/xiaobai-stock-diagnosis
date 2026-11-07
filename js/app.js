@@ -126,7 +126,9 @@ const state = {
   current: null,
   chart: null,
   range: '1m',
-  indexKl: null
+  indexKl: null,
+  order: null,
+  fullRebuild: true
 };
 
 /* ---------- 工具 ---------- */
@@ -153,6 +155,7 @@ async function init() {
 
   $('search-input').addEventListener('input', e => {
     state.filters.kw = e.target.value.trim().toLowerCase();
+    state.fullRebuild = true;
     scheduleRender();
   });
   $('list').innerHTML = '<div class="empty">正在获取实时行情…</div>';
@@ -281,6 +284,7 @@ function pick(key, value, el) {
   el.parentNode.querySelectorAll('.dw-item').forEach(i => i.classList.remove('on'));
   el.classList.add('on');
   document.querySelectorAll('.dw-menu').forEach(m => m.classList.remove('show'));
+  state.fullRebuild = true;
   scheduleRender();
 }
 
@@ -344,6 +348,20 @@ async function diagnoseQueue() {
 }
 
 /* ---------- 列表 ---------- */
+/* 顺序只在首屏定一次（按当日涨跌幅），之后体检分数陆续算出来也不重排，
+   避免卡片反复换位 */
+function fixedVisible() {
+  if (!state.order) {
+    state.order = state.items
+      .slice()
+      .sort((a, b) => (a.quote.pct == null ? -9999 : a.quote.pct) - (b.quote.pct == null ? -9999 : b.quote.pct))
+      .map(i => i.quote.code);
+  }
+  const byCode = {};
+  state.items.forEach(i => { byCode[i.quote.code] = i; });
+  return state.order.map(c => byCode[c]).filter(Boolean).filter(matchFilters);
+}
+
 function matchFilters(it) {
   const q = it.quote;
   if (state.filters.kw) {
@@ -440,7 +458,7 @@ function renderList() {
   const list = $('list');
   if (state.bootError) return;
 
-  const visible = sortItems(state.items.filter(matchFilters));
+  const visible = fixedVisible();
   const f = state.filters;
   const hasFilter = !!(f.kw || f.type || f.cap || f.pe || f.heat || f.div || f.strategy || f.risk || f.focus || f.chg);
   const doneCount = state.items.filter(i => i.status === 'done' || i.status === 'partial' || i.status === 'error').length;
@@ -449,9 +467,23 @@ function renderList() {
   const direct = directCardHTML();
   if (!visible.length && !direct) {
     list.innerHTML = `<div class="empty">${hasFilter ? '当前条件下没有匹配的股票' : '暂无数据'}${strain > 0 ? '<br>体检还没做完，等几秒再试' : ''}</div>`;
+    state.fullRebuild = true;
     return;
   }
-  list.innerHTML = `<div class="stock-grid">${direct}${visible.map(cardHTML).join('')}</div>`;
+
+  let grid = list.querySelector('.stock-grid');
+  // 首屏、筛选/搜索变化时整块重建；体检结果回来时只就地换内容，卡片位置不动
+  if (!grid || state.fullRebuild) {
+    list.innerHTML = `<div class="stock-grid">${direct}${visible.map(cardHTML).join('')}</div>`;
+    state.fullRebuild = false;
+    return;
+  }
+
+  grid.querySelectorAll('.stock-item[data-code]').forEach(node => {
+    const it = state.items.find(x => x.quote.code === node.dataset.code);
+    if (!it) { node.remove(); return; }
+    node.outerHTML = cardHTML(it);
+  });
 }
 
 /* 搜索框里输入 6 位代码、且不在精选池时，给一张「直接诊断」卡片 */
@@ -502,7 +534,7 @@ function cardHTML(it) {
   if (q.volratio !== null && q.volratio !== undefined) extra.push(`量比 <b>${f1(q.volratio)}</b>`);
   if (it.dividend && it.dividend.yieldPct !== null) extra.push(`股息 <b>${f2(it.dividend.yieldPct)}%</b>`);
 
-  return `<div class="stock-item" onclick="App.openDetail('${q.secid}')">
+  return `<div class="stock-item" data-code="${q.code}" onclick="App.openDetail('${q.secid}')">
     <div class="si-top">
       <div class="si-left">
         <span class="si-name">${esc(q.name)}</span>

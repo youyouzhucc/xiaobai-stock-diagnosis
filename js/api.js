@@ -9,6 +9,21 @@ const API = (() => {
 
   const cache = new Map();
 
+  /* 会话缓存：5 分钟内刷新页面直接用上次的结果，不重打接口 */
+  const TTL = 5 * 60 * 1000;
+  function ssGet(key) {
+    try {
+      const s = sessionStorage.getItem(key);
+      if (!s) return null;
+      const o = JSON.parse(s);
+      if (!o || Date.now() - o.at > TTL) { sessionStorage.removeItem(key); return null; }
+      return o.v;
+    } catch (e) { return null; }
+  }
+  function ssSet(key, v) {
+    try { sessionStorage.setItem(key, JSON.stringify({ at: Date.now(), v })); } catch (e) { }
+  }
+
   async function getJSON(url, timeout = 11000) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeout);
@@ -28,6 +43,8 @@ const API = (() => {
   async function quotes(secids) {
     const key = 'q:' + secids.join(',');
     if (cache.has(key)) return cache.get(key);
+    const saved = ssGet('api:' + key);
+    if (saved) { cache.set(key, saved); return saved; }
     const fields = 'f2,f3,f4,f8,f9,f10,f12,f13,f14,f15,f16,f17,f18,f20,f21,f23,f100';
     const url = `${QUOTE}?secids=${secids.join(',')}&fields=${fields}&_=${Date.now()}`;
     const json = await getJSON(url);
@@ -54,6 +71,7 @@ const API = (() => {
       industry: d.f100 || '—'
     })).filter(x => x.price !== null);
     cache.set(key, list);
+    ssSet('api:' + key, list);
     return list;
   }
 
@@ -169,13 +187,15 @@ const API = (() => {
    * 注意这个接口用 fltt=2，字段已是小数，不能套 d2()（×100）
    */
   async function market() {
+    const saved = ssGet('api:market');
+    if (saved) return saved;
     const url = `${QUOTE}?fltt=2&secids=1.000001,0.399001,0.399006,1.000300` +
       `&fields=f2,f3,f4,f6,f12,f14,f104,f105,f106&_=${Date.now()}`;
     const json = await getJSON(url, 10000);
     const diff = json && json.data && json.data.diff;
     if (!diff) throw new Error('大盘数据为空');
     const rows = Array.isArray(diff) ? diff : Object.values(diff);
-    return rows.map(d => ({
+    const list = rows.map(d => ({
       code: String(d.f12),
       name: d.f14,
       price: num(d.f2),
@@ -186,6 +206,8 @@ const API = (() => {
       fall: num(d.f105),     // 下跌家数
       flat: num(d.f106)      // 平盘家数
     }));
+    ssSet('api:market', list);
+    return list;
   }
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
