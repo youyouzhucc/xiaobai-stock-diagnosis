@@ -35,6 +35,14 @@ const POOL = [
 
 const FILTER_DEFS = [
   {
+    key: 'board', label: '板块', opts: [
+      { v: '', t: '不限' },
+      { v: 'main', t: '沪深主板（都能买）' },
+      { v: 'gem', t: '创业板（要开通）' },
+      { v: 'star', t: '科创板（要开通）' }
+    ]
+  },
+  {
     key: 'type', label: '股票类型', opts: [
       { v: '', t: '不限' },
       { v: 'consumer', t: '消费 · 吃喝穿用' },
@@ -132,7 +140,7 @@ function syncVersion() {
 
 const state = {
   items: [],
-  filters: { kw: '', type: '', cap: '', pe: '', heat: '', div: '', strategy: '', risk: '', focus: '', chg: '' },
+  filters: { board: '', kw: '', type: '', cap: '', pe: '', heat: '', div: '', strategy: '', risk: '', focus: '', chg: '' },
   done: 0,
   total: 0,
   bootError: null,
@@ -457,22 +465,129 @@ async function loadMarket() {
   }
 }
 
+function filterTextOf(def) {
+  const cur = state.filters[def.key] || '';
+  const o = def.opts.find(x => x.v === cur) || def.opts[0];
+  return `${def.label}：${o.t}`;
+}
+
+/* 一次套用整套条件时，把每个下拉的文案和「已选」标记都同步过来 */
+function syncFilterTexts() {
+  FILTER_DEFS.forEach(def => {
+    const trg = $('trg-' + def.key);
+    if (!trg) return;
+    trg.textContent = filterTextOf(def);
+    trg.classList.toggle('on', !!state.filters[def.key]);
+  });
+}
+
 function renderFilters() {
   $('filters').innerHTML = FILTER_DEFS.map(def => {
     const items = def.opts.map((o, i) =>
-      `<div class="dw-item${i === 0 ? ' on' : ''}" onclick="App.pick('${def.key}','${o.v}',this)">${o.t}</div>`
+      `<div class="dw-item${o.v === (state.filters[def.key] || '') ? ' on' : ''}" onclick="App.pick('${def.key}','${o.v}',this)">${o.t}</div>`
     ).join('');
     return `<div class="dw">
-      <div class="dw-trigger" id="trg-${def.key}" onclick="App.toggleDw(event,this)">${def.label}：不限</div>
+      <div class="dw-trigger${state.filters[def.key] ? ' on' : ''}" id="trg-${def.key}" onclick="App.toggleDw(event,this)">${filterTextOf(def)}</div>
       <div class="dw-arrow"></div>
       <div class="dw-menu">${items}</div>
     </div>`;
   }).join('') + permControls();
+  renderPresets();
 }
 
-/* 筛选栏末尾只留一个真正起筛选作用的开关；设置类入口放到了搜索行右边 */
+/* 筛选栏末尾两个控件：只看我能买的 / 存为常用 */
 function permControls() {
-  return `<button class="only-mine${state.onlyMine ? ' on' : ''}" onclick="App.toggleOnlyMine()">只看我能买的</button>`;
+  return `<button class="only-mine${state.onlyMine ? ' on' : ''}" onclick="App.toggleOnlyMine()">只看我能买的</button>
+    <button class="preset-save" onclick="App.savePreset()">＋ 存为常用</button>`;
+}
+
+/* ---------- 常用筛选组合 ---------- */
+const PRESET_KEY = 'xb.presets';
+
+function getPresets() {
+  try {
+    const a = JSON.parse(localStorage.getItem(PRESET_KEY) || '[]');
+    return Array.isArray(a) ? a : [];
+  } catch (e) { return []; }
+}
+function setPresets(arr) {
+  try { localStorage.setItem(PRESET_KEY, JSON.stringify(arr)); } catch (e) { /* 隐私模式忽略 */ }
+}
+
+/* 用条件本身当名字，比「组合 1」好认：取前三个短语 */
+function presetLabel(f) {
+  const parts = [];
+  if (f.kw) parts.push('搜「' + f.kw + '」');
+  FILTER_DEFS.forEach(def => {
+    const v = f[def.key];
+    if (!v) return;
+    const o = def.opts.find(x => x.v === v);
+    if (!o) return;
+    parts.push(o.t.split('（')[0].split(' · ')[0]);
+  });
+  const head = parts.slice(0, 3).join(' · ');
+  return parts.length > 3 ? head + ' …' : head;
+}
+
+function renderPresets() {
+  const box = $('presets');
+  if (!box) return;
+  const list = getPresets();
+  if (!list.length) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = `<span class="p-lbl">常用</span>` + list.map((p, i) =>
+    `<span class="p-chip" onclick="App.usePreset(${i})" title="点一下套用这组条件">${esc(presetLabel(p))}<b class="p-x" onclick="App.delPreset(event,${i})" title="删掉">×</b></span>`
+  ).join('');
+}
+
+function savePreset() {
+  const cur = {};
+  FILTER_DEFS.forEach(d => { if (state.filters[d.key]) cur[d.key] = state.filters[d.key]; });
+  if (state.filters.kw) cur.kw = state.filters.kw;
+  if (!Object.keys(cur).length) { toast('先在筛选栏选一组条件，再存'); return; }
+  const list = getPresets();
+  if (list.some(p => JSON.stringify(p) === JSON.stringify(cur))) { toast('这组条件已经存过了'); return; }
+  if (list.length >= 4) { toast('最多存 4 组，先删掉一个'); return; }
+  list.push(cur);
+  setPresets(list);
+  renderPresets();
+  toast('已存下，下次点一下就能套用');
+}
+
+function usePreset(i) {
+  const p = getPresets()[i];
+  if (!p) return;
+  FILTER_DEFS.forEach(d => { state.filters[d.key] = p[d.key] || ''; });
+  state.filters.kw = p.kw || '';
+  const si = $('search-input');
+  if (si) si.value = state.filters.kw;
+  syncFilterTexts();
+  syncEntryVisibility();
+  state.fullRebuild = true;
+  scheduleRender();
+  toast('已套用「' + presetLabel(p) + '」');
+}
+
+function delPreset(e, i) {
+  e.stopPropagation();
+  const list = getPresets();
+  list.splice(i, 1);
+  setPresets(list);
+  renderPresets();
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById('toast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'toast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
 
 /* 顶部那颗「设置我能买的」按钮的状态：设过就点亮绿点 */
@@ -667,6 +782,14 @@ function matchFilters(it) {
   // 只看我能买的：主板永远可买，创业板/科创板看用户自己勾了没有
   if (state.onlyMine && !UI.canBuy(q.code)) return false;
 
+  // 板块：主板 / 创业板 / 科创板
+  if (f.board) {
+    const bd = UI.boardOf(q.code);
+    if (f.board === 'main' && bd) return false;
+    if (f.board === 'gem' && (!bd || bd.key !== 'gem')) return false;
+    if (f.board === 'star' && (!bd || bd.key !== 'star')) return false;
+  }
+
   // 股票类型：按行业归类，不依赖财报，体检中也能筛
   if (f.type && typeOf(q.industry) !== f.type) return false;
 
@@ -756,7 +879,7 @@ function renderList() {
 
   const visible = fixedVisible();
   const f = state.filters;
-  const hasFilter = !!(f.kw || f.type || f.cap || f.pe || f.heat || f.div || f.strategy || f.risk || f.focus || f.chg);
+  const hasFilter = !!(f.kw || f.board || f.type || f.cap || f.pe || f.heat || f.div || f.strategy || f.risk || f.focus || f.chg) || state.onlyMine;
   const doneCount = state.items.filter(i => i.status === 'done' || i.status === 'partial' || i.status === 'error').length;
   const strain = state.total - doneCount;
 
@@ -1589,6 +1712,6 @@ document.addEventListener('click', e => {
 
 window.addEventListener('resize', () => { if (state.chart) state.chart.resize(); });
 
-window.App = { openDetail, openByCode, goHome, setRange, toggleDw, pick, openPerm, closePerm, applyPerm, toggleOnlyMine };
+window.App = { openDetail, openByCode, goHome, setRange, toggleDw, pick, openPerm, closePerm, applyPerm, toggleOnlyMine, savePreset, usePreset, delPreset };
 
 init();

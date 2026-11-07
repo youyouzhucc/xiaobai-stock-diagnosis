@@ -56,6 +56,13 @@ function typeOf(industry) {
 /* ---------- 筛选条件定义 ---------- */
 const FILTERS = [
   {
+    key: 'board', all: '全部板块', opts: [
+      { v: 'main', t: '沪深主板（都能买）' },
+      { v: 'gem', t: '创业板（要开通）' },
+      { v: 'star', t: '科创板（要开通）' }
+    ]
+  },
+  {
     key: 'type', all: '全部类型', opts: [
       { v: 'consumer', t: '消费 · 吃喝穿用' },
       { v: 'finance', t: '金融 · 银行保险券商' },
@@ -169,7 +176,7 @@ const state = {
   failed: [],
   firstPaint: false,
   page: 1,
-  f: { type: '', cap: '', pe: '', heat: '', chg: '', theme: '', ind: '' },
+  f: { board: '', type: '', cap: '', pe: '', heat: '', chg: '', theme: '', ind: '' },
   sort: 'code',
   scores: new Map(),
   loading: false
@@ -291,8 +298,29 @@ async function loadAll() {
 }
 
 /* ---------- 筛选 ---------- */
+/* 板块只看代码前缀：300/301/302 = 创业板，688/689 = 科创板，其余算主板 */
+const BOARD_RE = { gem: /^(300|301|302)/, star: /^(688|689)/ };
+function boardOf(code) {
+  const c = String(code || '');
+  if (BOARD_RE.gem.test(c)) return { key: 'gem', t: '创业板' };
+  if (BOARD_RE.star.test(c)) return { key: 'star', t: '科创板' };
+  return null;
+}
+function boardTagOf(code) {
+  const b = boardOf(code);
+  return b ? `<span class="bd ${b.key}">${b.t}</span>` : '';
+}
+
 function match(d) {
   const f = state.f;
+
+  if (f.board) {
+    const b = boardOf(d.f12);
+    if (f.board === 'main' && b) return false;
+    if (f.board === 'gem' && (!b || b.key !== 'gem')) return false;
+    if (f.board === 'star' && (!b || b.key !== 'star')) return false;
+  }
+
   if (f.type && typeOf(d.f100) !== f.type) return false;
 
   if (f.ind && String(d.f100 || '').replace(/[ⅠⅡⅢ]+$/g, '') !== f.ind) return false;
@@ -399,12 +427,6 @@ function rowHTML(d) {
   const sc = scoreOf(code);
   const pe = num(d.f9);
 
-  const top = `<div class="r-top">
-      <div style="min-width:0">
-        <span class="r-name">${esc(d.f14)}</span><span class="r-code">${code}</span><span class="r-ind">${esc((d.f100 || '未分类').replace(/[ⅠⅡⅢ]+$/, ''))}</span>
-      </div>
-      <div class="r-right">`;
-
   if (!hasPrice) {
     return `<div class="row dead">
       <div class="r-top">
@@ -418,7 +440,7 @@ function rowHTML(d) {
   return `<div class="row" onclick="location.href='./index.html?code=${code}'">
     <div class="r-top">
       <div style="min-width:0">
-        <span class="r-name">${esc(d.f14)}</span><span class="r-code">${code}</span><span class="r-ind">${esc((d.f100 || '未分类').replace(/[ⅠⅡⅢ]+$/, ''))}</span>
+        <span class="r-name">${esc(d.f14)}</span><span class="r-code">${code}</span><span class="r-ind">${esc((d.f100 || '未分类').replace(/[ⅠⅡⅢ]+$/, ''))}</span>${boardTagOf(code)}
       </div>
       <div class="r-right">
         <div class="r-price">${f2(d.f2)}</div>
@@ -492,7 +514,7 @@ function applyTheme(id) {
   const th = THEMES.find(t => t.id === id);
   if (!th) return;
   const same = state.f.theme === id;
-  state.f = { type: '', cap: '', pe: '', heat: '', chg: '', theme: same ? '' : id, ind: '' };
+  state.f = { board: '', type: '', cap: '', pe: '', heat: '', chg: '', theme: same ? '' : id, ind: '' };
   state.sort = same ? 'code' : th.sort;
   state.page = 1;
   syncAllSelects();

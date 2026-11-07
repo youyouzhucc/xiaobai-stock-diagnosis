@@ -274,6 +274,42 @@ body {
 .only-mine:hover { border-color: var(--text-weak); color: var(--text); }
 .only-mine.on { background: var(--green); border-color: var(--green); color: #fff; font-weight: 600; }
 
+/* 存为常用 */
+.preset-save {
+    border: 1px dashed var(--line-strong); background: none; color: var(--text-sub);
+    font-family: inherit; font-size: 13px; padding: 8px 11px; border-radius: 8px;
+    cursor: pointer; white-space: nowrap; transition: border-color .12s, color .12s;
+}
+.preset-save:hover { border-color: var(--green); color: var(--green); }
+
+/* 已存的常用组合 */
+.presets {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 7px;
+    margin: 0 0 14px;
+}
+.p-lbl { font-size: 11.5px; color: var(--text-weak); }
+.p-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--fill-green); border: 1px solid #D1DCD6; color: var(--green);
+    font-size: 12px; padding: 4px 4px 4px 10px; border-radius: 14px;
+    cursor: pointer; transition: background .12s;
+}
+.p-chip:hover { background: #E1EAE4; }
+.p-x {
+    font-size: 12px; font-weight: 400; color: var(--green); opacity: .55;
+    padding: 0 4px; border-radius: 8px;
+}
+.p-x:hover { opacity: 1; background: rgba(0, 0, 0, .06); }
+
+/* 轻提示 */
+#toast {
+    position: fixed; left: 50%; bottom: 40px; transform: translate(-50%, 10px);
+    background: rgba(44, 43, 41, .92); color: #fff; font-size: 12.5px;
+    padding: 9px 16px; border-radius: 18px; z-index: 200;
+    opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s;
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
 /* 权限浮层 */
 .perm-mask {
     position: fixed; inset: 0; background: rgba(40, 38, 36, .28);
@@ -299,10 +335,10 @@ body {
     font-size: 11px; color: var(--text-weak); line-height: 1.6; margin-top: 10px;
     padding-top: 9px; border-top: 1px solid var(--line);
 }
-/* 板块徽章：需要开通权限的板块才出现，主板不标 */
+/* 板块徽章：尺寸、圆角、内边距跟行业标签 .si-ind 完全一致，只靠颜色区分 */
 .bd {
-    font-style: normal; font-size: 9.5px; font-weight: 600; line-height: 1;
-    padding: 2px 5px; border-radius: 3px; flex: none; white-space: nowrap;
+    font-style: normal; font-size: 11px; font-weight: 600;
+    padding: 1px 7px; border-radius: 4px; flex: none; white-space: nowrap;
 }
 .bd.gem { background: #F6EFE9; color: #9A7B52; }
 .bd.star { background: #F0F3F5; color: #5C7383; }
