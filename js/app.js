@@ -1,4 +1,4 @@
-/* 小白诊股 · 页面逻辑 */
+﻿/* 小白诊股 · 页面逻辑 */
 
 const POOL = [
   { secid: '1.600519', name: '贵州茅台', py: 'gzmt' },
@@ -986,7 +986,7 @@ function renderDetail(it) {
     行情、历史 K 线来自东方财富公开接口，财务数据来自上市公司定期报告。<br>
     <b>以上全部是客观数据整理，不构成任何投资建议。</b><br>
     历史数据不代表未来，股市有风险，投资需谨慎。
-    <div class="ver">v8</div>
+    <div class="ver">v11</div>
   </div>`;
 
   renderChart(state.range);
