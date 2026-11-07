@@ -500,39 +500,18 @@ function applyTheme(id) {
   render();
 }
 
+/* 主题不再做成 6 个芯片铺在这里 —— 榜单已经搬到首页。
+ * 这里只处理「从首页榜单点进来」的情况：显示一行提示，告诉你在看什么、怎么退出。 */
 function renderThemes() {
   const box = $('theme-bar');
   if (!box) return;
   const cur = THEMES.find(t => t.id === state.f.theme);
-  const chips = THEMES.map(t =>
-    `<button type="button" class="th-chip${state.f.theme === t.id ? ' on' : ''}" data-th="${t.id}">${t.label}</button>`
-  ).join('') + (state.f.ind
-    ? `<button type="button" class="th-chip on" data-clear-ind="1">行业：${esc(state.f.ind)}<span class="th-x">×</span></button>`
-    : '');
-
-  const hint = cur
-    ? `<b>${cur.label}</b>：${cur.hint}`
-    : (state.f.ind
-      ? `<b>${esc(state.f.ind)}</b>：该行业里的股票，按最近交易日涨幅从高到低排。`
-      : '不知道从哪看？点一个主题，它会自动帮你筛好条件、排好序。');
-
-  box.innerHTML = `<div class="th-list">${chips}</div><div class="th-hint">${hint}</div>`;
-
-  box.querySelectorAll('.th-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.clearInd) {
-        state.f.ind = '';
-        state.f.theme = '';
-        state.sort = 'code';
-        state.page = 1;
-        syncAllSelects();
-        syncURL();
-        render();
-        return;
-      }
-      applyTheme(btn.dataset.th);
-    });
-  });
+  if (!cur) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  box.innerHTML = `<div class="th-line"><b>${cur.label}</b><span>${cur.hint}</span>
+    <button type="button" class="th-cancel" id="th-cancel">看全部 ×</button></div>`;
+  const btn = $('th-cancel');
+  if (btn) btn.addEventListener('click', () => applyTheme(state.f.theme));
 }
 
 /* ---------- 行业风向 ----------
@@ -557,44 +536,27 @@ function industryRank() {
 }
 
 let indCacheKey = '';
+/* 行业风向不再做成两组可点芯片（和筛选行叠在一起太复杂），
+ * 改成筛选行下方一行灰字摘要：最强 3 个 / 最弱 3 个，扫一眼就知道今天哪个行业在涨。
+ */
 function renderIndustry() {
-  const box = $('ind-card');
+  const box = $('ind-line');
   if (!box) return;
   const key = `${state.loaded}/${state.pages}:${state.rows.length}`;
   if (key === indCacheKey) return;
   indCacheKey = key;
 
-  if (state.loaded < state.pages) {
-    box.innerHTML = `<div class="ind-head">行业风向</div>
-      <div class="ind-sub">等全市场载入完再统计，否则会漏掉还没载入的行业。</div>`;
-    return;
-  }
+  if (state.loaded < state.pages) { box.innerHTML = ''; return; }
 
   const list = industryRank();
   if (!list.length) { box.innerHTML = ''; return; }
-  const top = list.slice(0, 5);
-  const bottom = list.slice(-5).reverse();
 
-  const chip = x => `<button type="button" class="ind-chip" data-ind="${esc(x.name)}">
-      <span class="ind-name">${esc(x.name)}</span>
-      <b class="${cls(x.avg)}">${fpct(x.avg)}</b>
-      <i>${x.n} 只 · ${Math.round(x.upRatio * 100)}% 上涨</i>
-    </button>`;
-
-  box.innerHTML = `<div class="ind-head">行业风向<span class="ind-sub">最近交易日，该行业所有股票的平均涨跌（样本少于 5 只不计）</span></div>
-    <div class="ind-row"><span class="ind-lab">最强</span>${top.map(chip).join('')}</div>
-    <div class="ind-row"><span class="ind-lab">最弱</span>${bottom.map(chip).join('')}</div>`;
-
-  box.querySelectorAll('.ind-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      state.f = { type: '', cap: '', pe: '', heat: '', chg: '', theme: '', ind: btn.dataset.ind };
-      state.sort = 'pct_desc';
-      state.page = 1;
-      syncAllSelects();
-      syncURL();
-      render();
-    });
-  });
+  const fmt = x => `${esc(x.name)} <b class="${cls(x.avg)}">${fpct(x.avg)}</b>`;
+  box.innerHTML = `<span class="ind-l">行业风向</span>`
+    + `最强 ${list.slice(0, 3).map(fmt).join(' · ')}`
+    + `<span class="ind-sep">｜</span>`
+    + `最弱 ${list.slice(-3).reverse().map(fmt).join(' · ')}`
+    + `<span class="ind-note">最近交易日各行业平均涨跌，样本少于 5 只不算</span>`;
 }
 
 /* ---------- 筛选栏 ---------- */
@@ -721,6 +683,15 @@ document.addEventListener('DOMContentLoaded', () => {
     state.sort = sortParam;
     $('mk-sort').value = sortParam;
     $('mk-sort').classList.add('on');
+  } else if (state.f.theme) {
+    // 从首页榜单点进来只带了 topic，排序要跟着主题走，否则会按代码乱序，看着像没生效
+    const th = THEMES.find(t => t.id === state.f.theme);
+    if (th) {
+      state.sort = th.sort;
+      $('mk-sort').value = th.sort;
+      $('mk-sort').classList.add('on');
+      syncURL();
+    }
   }
 
   $('mk-sort').addEventListener('change', e => {

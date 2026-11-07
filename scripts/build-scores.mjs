@@ -218,7 +218,7 @@ const FS_ALL = 'm:0+t:6,m:0+t:80,m:1+t:2,m:1+t:23';
 
 async function listPage(pn) {
   const url = `${CLIST}?pn=${pn}&pz=100&po=0&np=1&ut=bd1d9ddb040897cfd9463debb285354` +
-    `&fltt=2&invt=2&fid=f12&fs=${encodeURIComponent(FS_ALL)}&fields=f9,f12,f23`;
+    `&fltt=2&invt=2&fid=f12&fs=${encodeURIComponent(FS_ALL)}&fields=f2,f3,f8,f9,f10,f12,f14,f20,f23,f24,f100`;
   const j = await getJSON(url, 16000);
   const d = (j && j.data) || {};
   return { rows: Array.isArray(d.diff) ? d.diff : Object.values(d.diff || {}), total: d.total || 0 };
@@ -264,3 +264,64 @@ ordered.forEach((r, i) => { rankMap[String(r.f12)] = i + 1; });
 const rankPayload = { date: dateStr, generatedAt: `${dateStr} ${timeStr}`, n: ordered.length, ranks: rankMap };
 fs.writeFileSync(path.join(dir, 'ranks.json'), JSON.stringify(rankPayload), 'utf8');
 console.log(`写入 data/ranks.json：${ordered.length} 只有效估值排名（共抓 ${allRows.length} 条）`);
+
+/* ---------- 首页主题榜单：每天算一次，每个主题取前 3 只 ----------
+ * 口径与全市场页的 THEMES 一致，数据同源，不会出现两边数字打架。
+ * 只做「能一句话讲明白、且接口原生字段就够用」的主题。
+ */
+const isNum = v => typeof v === 'number' && Number.isFinite(v);
+// 净筛：退市股、ST、停牌、价格无效的一律不进榜 —— 它们的极端涨跌是制度原因，对新手是误导
+const tradable = r => {
+  const name = String(r.f14 || '');
+  if (/退|ST/i.test(name)) return false;
+  if (!isNum(r.f2) || r.f2 <= 0) return false;
+  if ((r.f8 === 0 || r.f8 === null) && (r.f3 === 0 || r.f3 === null)) return false;
+  return true;
+};
+
+const pick = r => ({
+  code: String(r.f12),
+  name: String(r.f14 || ''),
+  ind: String(r.f100 || '—').replace(/[ⅠⅡⅢ]+/g, ''),
+  price: isNum(r.f2) ? r.f2 : null,
+  pct: isNum(r.f3) ? r.f3 : null,
+  pe: isNum(r.f9) ? r.f9 : null,
+  pb: isNum(r.f23) ? r.f23 : null,
+  cap: isNum(r.f20) ? Math.round(r.f20 / 1e8) : null,   // 单位：亿
+  d60: isNum(r.f24) ? r.f24 : null,
+  vr: isNum(r.f10) ? r.f10 : null,
+  turn: isNum(r.f8) ? r.f8 : null
+});
+
+const pool = allRows.filter(tradable);
+const byPe = (a, b) => a.f9 - b.f9;   // 注意：clist 行对象里市盈率字段叫 f9，不是 pe
+const themes = [
+  { id: 'cheap', title: '估值最便宜', note: '市盈率最低的一批', warn: '便宜不等于好，也可能这门生意在走下坡',
+    rows: pool.filter(r => isNum(r.f9) && r.f9 >= 1).sort(byPe) },
+  { id: 'bluechip', title: '便宜的大块头', note: '市值过千亿、市盈率 20 倍以内', warn: '大公司波动小适合当底仓，但涨起来也慢',
+    rows: pool.filter(r => isNum(r.f20) && r.f20 >= 1e11 && isNum(r.f9) && r.f9 >= 1 && r.f9 <= 20).sort(byPe) },
+  { id: 'drop60', title: '近两月跌最狠', note: '两个月跌超两成，排在最前', warn: '跌得多不等于会反弹，先看清是行业问题还是自身问题',
+    rows: pool.filter(r => isNum(r.f24) && r.f24 <= -20).sort((a, b) => a.f24 - b.f24) },
+  { id: 'rise60', title: '近两月涨最猛', note: '两个月涨超两成，排在最前', warn: '涨得猛可能是情绪推的，追之前先看估值',
+    rows: pool.filter(r => isNum(r.f24) && r.f24 >= 20).sort((a, b) => b.f24 - a.f24) },
+  { id: 'volume', title: '突然放量', note: '量比 2 以上，今天比平时活跃', warn: '放量可能是消息，也可能是资金异动，方向不一定',
+    rows: pool.filter(r => isNum(r.f10) && r.f10 >= 2).sort((a, b) => b.f10 - a.f10) },
+  { id: 'cold', title: '没什么人搭理', note: '换手率不到 1%，买卖很清淡', warn: '想买容易、想卖可能没人接，短线尤其要当心',
+    rows: pool.filter(r => isNum(r.f8) && r.f8 < 1 && isNum(r.f9) && r.f9 >= 1).sort((a, b) => a.f8 - b.f8) }
+];
+
+const boards = themes.map(t => ({
+  id: t.id, title: t.title, note: t.note, warn: t.warn,
+  count: t.rows.length,
+  stocks: t.rows.slice(0, 3).map(pick)
+}));
+
+const boardPayload = {
+  date: dateStr,
+  generatedAt: `${dateStr} ${timeStr}`,
+  total: allRows.length,
+  tradable: pool.length,
+  boards
+};
+fs.writeFileSync(path.join(dir, 'boards.json'), JSON.stringify(boardPayload, null, 2), 'utf8');
+console.log('写入 data/boards.json：' + boards.map(b => `${b.title}(${b.count})`).join(' / '));

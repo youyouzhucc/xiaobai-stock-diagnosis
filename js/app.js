@@ -1,4 +1,4 @@
-﻿/* 小白诊股 · 页面逻辑 */
+/* 小白诊股 · 页面逻辑 */
 
 const POOL = [
   { secid: '1.600519', name: '贵州茅台', py: 'gzmt' },
@@ -173,6 +173,76 @@ async function loadPreScores() {
   } catch (e) { return null; }
 }
 
+/* ---------- 首页主题榜单 ----------
+ * 数据由 scripts/build-scores.mjs 每天 12:05 生成一次（data/boards.json），
+ * 页面只读不现算 —— 否则要在浏览器里拉 56 页全市场，打开就慢。
+ */
+const BOARD_METRIC = {
+  cheap: { key: 'pe', label: 'PE' },
+  bluechip: { key: 'pe', label: 'PE' },
+  drop60: { key: 'd60', label: '近两月' },
+  rise60: { key: 'd60', label: '近两月' },
+  volume: { key: 'vr', label: '量比' },
+  cold: { key: 'turn', label: '换手' }
+};
+
+async function loadBoards() {
+  try {
+    const res = await fetch(`data/boards.json?d=${dayTag()}`);
+    if (!res.ok) return;
+    renderBoards(await res.json());
+  } catch (e) { /* 榜单拿不到就整块不显示，不影响主流程 */ }
+}
+
+function metricText(id, s) {
+  const m = BOARD_METRIC[id];
+  if (!m) return '';
+  const v = s[m.key];
+  if (v === null || v === undefined) return `${m.label} —`;
+  if (m.key === 'pe') return Number(v) <= 0 ? 'PE 亏损' : `PE ${Number(v).toFixed(1)}`;
+  if (m.key === 'd60') return `${m.label} ${v > 0 ? '+' : ''}${Number(v).toFixed(1)}%`;
+  if (m.key === 'vr') return `量比 ${Number(v).toFixed(2)}`;
+  if (m.key === 'turn') return `换手 ${Number(v).toFixed(2)}%`;
+  return `${m.label} ${v}`;
+}
+
+function boardHTML(b) {
+  const rows = (b.stocks || []).map(s => `
+    <button class="bc-row" onclick="App.openByCode('${s.code}')">
+      <span class="bc-name">${esc(s.name)}</span>
+      <span class="bc-code">${s.code}</span>
+      <span class="bc-metric">${metricText(b.id, s)}</span>
+    </button>`).join('');
+  return `<div class="bcard">
+    <div class="bc-head">
+      <span class="bc-title">${esc(b.title)}</span>
+      <a class="bc-all" href="market.html?theme=${encodeURIComponent(b.id)}">共 ${b.count} 只 ›</a>
+    </div>
+    <div class="bc-sub">${esc(b.note || '')}</div>
+    <div class="bc-list">${rows}</div>
+    <div class="bc-warn">${esc(b.warn || '')}</div>
+  </div>`;
+}
+
+function renderBoards(payload) {
+  const box = $('boards'), grid = $('boards-grid');
+  if (!box || !grid) return;
+  const list = (payload && payload.boards) || [];
+  if (!list.length) return;
+  grid.innerHTML = list.map(boardHTML).join('');
+  box.hidden = false;
+  syncEntryVisibility();
+}
+
+/* 搜索时把「浏览全市场」「主题榜单」让位：用户已经有明确目标，不需要再被引导 */
+function syncEntryVisibility() {
+  const searching = !!(state.filters && state.filters.kw);
+  const entry = document.querySelector('.market-entry');
+  if (entry) entry.style.display = searching ? 'none' : '';
+  const boards = $('boards');
+  if (boards && !boards.hidden) boards.style.display = searching ? 'none' : '';
+}
+
 function applyPreScores(pre) {
   if (!pre || !pre.items) return 0;
   let hit = 0;
@@ -219,6 +289,7 @@ async function init() {
   renderFilters();
   syncVersion();
   loadMarket();
+  loadBoards();   // 榜单跟大盘并行拉，谁先回来谁先显示
 
   const toTop = $('to-top');
   window.addEventListener('scroll', () => {
@@ -229,6 +300,7 @@ async function init() {
   $('search-input').addEventListener('input', e => {
     state.filters.kw = e.target.value.trim().toLowerCase();
     state.fullRebuild = true;
+    syncEntryVisibility();
     scheduleRender();
   });
 
@@ -589,6 +661,7 @@ function scheduleRender() {
 function renderList() {
   const list = $('list');
   if (state.bootError) return;
+  syncEntryVisibility();
 
   const visible = fixedVisible();
   const f = state.filters;
@@ -825,11 +898,11 @@ function verdictOf(it) {
 
 function heatOf(q) {
   const t = q.turnover;
-  if (t === null) return { icon: '🌤', text: '换手率数据缺失。' };
-  if (t >= 8) return { icon: '🔥', text: `当前热度：非常拥挤。换手率 ${f2(t)}%，最近交易日换手极快，短线资金进进出出，追高风险大。` };
-  if (t >= 4) return { icon: '☀️', text: `当前热度：偏热。换手率 ${f2(t)}%，交易活跃度在中上水平。` };
-  if (t >= 1.5) return { icon: '🌤', text: `当前热度：正常。换手率 ${f2(t)}%，没有明显的抢筹或抛售。` };
-  return { icon: '❄️', text: `当前热度：冷门。换手率只有 ${f2(t)}%，买卖清淡，没什么人挤在这里。` };
+  if (t === null) return { text: '换手率数据缺失。' };
+  if (t >= 8) return { text: `当前热度：非常拥挤。换手率 ${f2(t)}%，最近交易日换手极快，短线资金进进出出，追高风险大。` };
+  if (t >= 4) return { text: `当前热度：偏热。换手率 ${f2(t)}%，交易活跃度在中上水平。` };
+  if (t >= 1.5) return { text: `当前热度：正常。换手率 ${f2(t)}%，没有明显的抢筹或抛售。` };
+  return { text: `当前热度：冷门。换手率只有 ${f2(t)}%，买卖清淡，没什么人挤在这里。` };
 }
 
 function adviceOf(it) {
@@ -989,21 +1062,27 @@ function renderDetail(it) {
     ? `财报口径：${esc(fin.report)}${fin.notice ? ' · 披露于 ' + esc(fin.notice) : ''}`
     : '财报数据暂不可用（接口超时或该股暂无数据）';
 
-  const baseItems = fin ? `
-    <div class="kv"><div class="kv-label"><span class="term" data-term="roe">ROE</span></div><div class="kv-val">${fin.roe === null ? '—' : f1(fin.roe) + '%'}</div><div class="kv-desc">股东每投 100 元，一年赚回多少</div></div>
-    ${d.financial
-      ? `<div class="kv"><div class="kv-label"><span class="term" data-term="eps">每股收益</span></div><div class="kv-val">${fin.eps === null ? '—' : f2(fin.eps) + ' 元'}</div><div class="kv-desc">每一股背后摊到的净利润</div></div>`
-      : `<div class="kv"><div class="kv-label"><span class="term" data-term="margin">毛利率</span></div><div class="kv-val">${fin.grossMargin === null ? '—' : f1(fin.grossMargin) + '%'}</div><div class="kv-desc">卖 100 元的货，扣掉直接成本还剩多少</div></div>`}
-    <div class="kv"><div class="kv-label"><span class="term" data-term="${d.financial ? 'netmargin' : 'debt'}">${d.financial ? '净利率' : '资产负债率'}</span></div><div class="kv-val">${d.financial ? (fin.netMargin === null ? '—' : f1(fin.netMargin) + '%') : (fin.debtRatio === null ? '—' : f1(fin.debtRatio) + '%')}</div><div class="kv-desc">${d.financial ? '每 100 元收入最后净剩下多少' : '负债占全部资产的比例，越低越安全'}</div></div>
-    <div class="kv"><div class="kv-label"><span class="term" data-term="cash">每股经营现金流</span></div><div class="kv-val">${fin.cashPerShare === null ? '—' : f2(fin.cashPerShare) + ' 元'}</div><div class="kv-desc">每股背后真实收到的现金，不是账面利润</div></div>
-  ` : `<div class="kv" style="grid-column:1/-1"><div class="kv-label">财务数据</div><div class="kv-val" style="font-size:15px">暂不可用</div><div class="kv-desc">接口没有返回这只股票的财报，底子分不参与综合评分</div></div>`;
+  const baseItems = fin ? UI.kvGrid([
+    { label: ['ROE', 'roe'], value: fin.roe === null ? '—' : f1(fin.roe) + '%', desc: '股东每投 100 元，一年赚回多少' },
+    d.financial
+      ? { label: ['每股收益', 'eps'], value: fin.eps === null ? '—' : f2(fin.eps) + ' 元', desc: '每一股背后摊到的净利润' }
+      : { label: ['毛利率', 'margin'], value: fin.grossMargin === null ? '—' : f1(fin.grossMargin) + '%', desc: '卖 100 元的货，扣掉直接成本还剩多少' },
+    {
+      label: [d.financial ? '净利率' : '资产负债率', d.financial ? 'netmargin' : 'debt'],
+      value: d.financial
+        ? (fin.netMargin === null ? '—' : f1(fin.netMargin) + '%')
+        : (fin.debtRatio === null ? '—' : f1(fin.debtRatio) + '%'),
+      desc: d.financial ? '每 100 元收入最后净剩下多少' : '负债占全部资产的比例，越低越安全'
+    },
+    { label: ['每股经营现金流', 'cash'], value: fin.cashPerShare === null ? '—' : f2(fin.cashPerShare) + ' 元', desc: '每股背后真实收到的现金，不是账面利润' }
+  ]) : `<div class="kv" style="grid-column:1/-1"><div class="kv-label">财务数据</div><div class="kv-val" style="font-size:15px">暂不可用</div><div class="kv-desc">接口没有返回这只股票的财报，底子分不参与综合评分</div></div>`;
 
-  const valItems = `
-    <div class="kv"><div class="kv-label"><span class="term" data-term="pe">市盈率 PE</span></div><div class="kv-val">${q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe) + ' 倍'}</div><div class="kv-desc">按现在的利润，多少年能赚回买入成本</div></div>
-    <div class="kv"><div class="kv-label"><span class="term" data-term="pb">市净率 PB</span></div><div class="kv-val">${f1(q.pb)}</div><div class="kv-desc">股价相对于每股净资产的倍数</div></div>
-    <div class="kv"><div class="kv-label"><span class="term" data-term="pos">价格分位</span></div><div class="kv-val">${s ? s.pos.toFixed(0) + '%' : '—'}</div><div class="kv-desc">在近一年最低到最高之间的位置</div></div>
-    <div class="kv"><div class="kv-label"><span class="term" data-term="cap">总市值</span></div><div class="kv-val">${fcap(q.mktcap)}</div><div class="kv-desc">市场给这家公司的总报价</div></div>
-  `;
+  const valItems = UI.kvGrid([
+    { label: ['市盈率 PE', 'pe'], value: q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe) + ' 倍', desc: '按现在的利润，多少年能赚回买入成本' },
+    { label: ['市净率 PB', 'pb'], value: f1(q.pb), desc: '股价相对于每股净资产的倍数' },
+    { label: ['价格分位', 'pos'], value: s ? s.pos.toFixed(0) + '%' : '—', desc: '在近一年最低到最高之间的位置' },
+    { label: ['总市值', 'cap'], value: fcap(q.mktcap), desc: '市场给这家公司的总报价' }
+  ]);
 
   const reportRows = fin ? [
     ['营业收入', fmoney(fin.revenue) + ' 元', fin.revenueYoY],
@@ -1044,28 +1123,25 @@ function renderDetail(it) {
   <div class="d-col">
 
   <div class="card">
-    <div class="section-title"><span class="st-name">💡 操作建议</span></div>
-    <div class="heat"><span>${heat.icon}</span><span>${heat.text}</span></div>
+    ${UI.title('操作建议')}
+    <div class="heat"><span>${heat.text}</span></div>
     <div class="advice-body" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px">${adv.main}</div>
     <div class="advice-block">
-      <div class="advice-sub">⏳ 分批节奏</div>
+      <div class="advice-sub">分批节奏</div>
       <div class="advice-body">${adv.batch}</div>
     </div>
     <div class="advice-block">
-      <div class="advice-sub">👤 适合人群</div>
+      <div class="advice-sub">适合人群</div>
       <div class="advice-body">${adv.who}</div>
     </div>
     <div class="advice-block">
-      <div class="advice-sub">🛡️ 跟踪防线</div>
+      <div class="advice-sub">跟踪防线</div>
       ${def.map((t, i) => `<div class="bullet"><span class="dot ${i === 0 ? 'g' : i === 1 ? 'r' : 'b'}"></span><span>${t}</span></div>`).join('')}
     </div>
   </div>
 
   <div class="card">
-    <div class="section-title">
-      <span class="st-name">⚖️ 盈亏空间测算</span>
-      <span class="st-concl">${odds ? (odds.odds === null ? '贴着地板' : `赔率 ${odds.odds.toFixed(1)}`) : '—'}</span>
-    </div>
+    ${UI.title('盈亏空间测算', odds ? (odds.odds === null ? '贴着地板' : `赔率 ${odds.odds.toFixed(1)}`) : '—')}
     <div class="odds-head">
       <span class="lo">向下的地板：${odds ? f2(odds.low) + ' 元（' + String(odds.lowDate || '').slice(5) + '）' : '—'}</span>
       <span class="hi">向上的天花板：${odds ? f2(odds.high) + ' 元（' + String(odds.highDate || '').slice(5) + '）' : '—'}</span>
@@ -1078,16 +1154,13 @@ function renderDetail(it) {
   </div>
 
   <div class="card">
-    <div class="section-title">
-      <span class="st-name">🌡️ 交易活跃与分红</span>
-      <span class="st-concl">${heatConcl(q)}</span>
-    </div>
-    <div class="kv-grid">
-      <div class="kv"><div class="kv-label"><span class="term" data-term="turnover">换手率</span></div><div class="kv-val">${q.turnover === null ? '—' : f1(q.turnover) + '%'}</div><div class="kv-desc">最近交易日有多大比例的流通股被买卖过</div></div>
-      <div class="kv"><div class="kv-label"><span class="term" data-term="volratio">量比</span></div><div class="kv-val">${q.volratio === null ? '—' : f2(q.volratio)}</div><div class="kv-desc">最近交易日每分钟的成交量，是过去 5 天平均的几倍</div></div>
-      <div class="kv"><div class="kv-label"><span class="term" data-term="dividend">股息率</span></div><div class="kv-val">${divv && divv.yieldPct !== null ? f2(divv.yieldPct) + '%' : '—'}</div><div class="kv-desc">按最近 12 个月真金白银派过的现金算</div></div>
-      <div class="kv"><div class="kv-label">近一年派现</div><div class="kv-val" style="font-size:15px">${divv && divv.count ? `${divv.count} 次 · 每股 ${f2(divv.dps)} 元` : '没有分红'}</div><div class="kv-desc">${divv && divv.lastDate ? '最近一次除息日 ' + divv.lastDate : '派现数据来自分红实施记录'}</div></div>
-    </div>
+    ${UI.title('交易活跃与分红', heatConcl(q))}
+    ${UI.kvGrid([
+      { label: ['换手率', 'turnover'], value: q.turnover === null ? '—' : f1(q.turnover) + '%', desc: '最近交易日有多大比例的流通股被买卖过' },
+      { label: ['量比', 'volratio'], value: q.volratio === null ? '—' : f2(q.volratio), desc: '最近交易日每分钟的成交量，是过去 5 天平均的几倍' },
+      { label: ['股息率', 'dividend'], value: divv && divv.yieldPct !== null ? f2(divv.yieldPct) + '%' : '—', desc: '按最近 12 个月真金白银派过的现金算' },
+      { label: '近一年派现', small: true, value: divv && divv.count ? `${divv.count} 次 · 每股 ${f2(divv.dps)} 元` : '没有分红', desc: divv && divv.lastDate ? '最近一次除息日 ' + divv.lastDate : '派现数据来自分红实施记录' }
+    ])}
     <div class="st-note">${divNote(divv, q)}</div>
   </div>
 
@@ -1095,34 +1168,22 @@ function renderDetail(it) {
   <div class="d-col">
 
   <div class="card">
-    <div class="section-title">
-      <span class="st-name">公司底子</span>
-      <span class="st-concl">${baseConcl(d)}</span>
-      <span class="st-score">${d.base === null ? '—' : d.base + '/100'}</span>
-    </div>
-    <div class="bar green"><i style="width:${d.base === null ? 0 : d.base}%"></i></div>
-    <div class="kv-grid">${baseItems}</div>
+    ${UI.title('公司底子', baseConcl(d), d.base === null ? '—' : d.base + '/100')}
+    ${UI.bar(d.base, 'green')}
+    ${baseItems}
     <div class="st-note">${finNote}${d.financial ? ' · 金融业不评资产负债率' : ''}</div>
   </div>
 
   <div class="card">
-    <div class="section-title">
-      <span class="st-name">估值水平</span>
-      <span class="st-concl">${valConcl(d)}</span>
-      <span class="st-score">${d.val === null ? '—' : d.val + '/100'}</span>
-    </div>
-    <div class="bar orange"><i style="width:${d.val === null ? 0 : d.val}%"></i></div>
-    <div class="kv-grid">${valItems}</div>
+    ${UI.title('估值水平', valConcl(d), d.val === null ? '—' : d.val + '/100')}
+    ${UI.bar(d.val, 'orange')}
+    ${valItems}
     <div class="st-note">PE 取的是滚动市盈率（TTM），亏损公司按「亏损」显示、不参与打高分。</div>
   </div>
 
   <div class="card">
-    <div class="section-title">
-      <span class="st-name">近期趋势</span>
-      <span class="st-concl">${trendConcl(it)}</span>
-      <span class="st-score">${d.trend === null ? '—' : d.trend + '/100'}</span>
-    </div>
-    <div class="bar blue"><i style="width:${d.trend === null ? 0 : d.trend}%"></i></div>
+    ${UI.title('近期趋势', trendConcl(it), d.trend === null ? '—' : d.trend + '/100')}
+    ${UI.bar(d.trend, 'blue')}
     <div class="tags" style="margin-bottom:12px">
       <span class="tag ${s && s.last > s.ma20 ? 'good' : 'warn'}">${s && s.last > s.ma20 ? '站上 20 日均线' : '压在 20 日均线下方'}</span>
       ${s ? `<span class="tag ${s.ma20 > s.ma60 ? 'good' : 'warn'}">${s.ma20 > s.ma60 ? '20 日线在 60 日线上方' : '20 日线在 60 日线下方'}</span>` : ''}
@@ -1146,10 +1207,7 @@ function renderDetail(it) {
   </div>
 
   <div class="card">
-    <div class="section-title">
-      <span class="st-name">最新财报</span>
-      <span class="st-concl">${fin ? esc(fin.report) : '暂无'}</span>
-    </div>
+    ${UI.title('最新财报', fin ? esc(fin.report) : '暂无')}
     <div class="report-list">${reportRows}</div>
     <div class="st-note">数据来自上市公司定期报告，按最近已披露的报告期展示。</div>
   </div>
