@@ -325,3 +325,87 @@ const boardPayload = {
 };
 fs.writeFileSync(path.join(dir, 'boards.json'), JSON.stringify(boardPayload, null, 2), 'utf8');
 console.log('写入 data/boards.json：' + boards.map(b => `${b.title}(${b.count})`).join(' / '));
+
+/* ---------- 新股排期 data/ipo.json ----------
+ * 来源：东方财富「新股申购」报表 RPTA_APP_IPOAPPLY（交易所公布的排期，不是传闻）。
+ * 页面为小白解释：哪只还能打新、哪只快上市、最近上市的首日表现。
+ */
+const LISTING_DAYS = 20;   // 最近上市看 20 天
+const FUTURE_DAYS = 30;    // 待申购 / 待上市看 30 天
+
+function ymd(v) {
+  return v ? String(v).slice(0, 10) : '';
+}
+function daysBetween(a, b) {
+  return Math.round((new Date(b) - new Date(a)) / 86400000);
+}
+
+/* 板块口径：接口里的 MARKET_TYPE_NEW / TRADE_MARKET */
+function ipoBoard(row) {
+  const mk = String(row.MARKET_TYPE_NEW || row.TRADE_MARKET || '');
+  if (/科创/.test(mk)) return 'star';
+  if (/创业板/.test(mk)) return 'gem';
+  if (/北交/.test(mk)) return 'bse';
+  if (/沪|上海/.test(mk)) return 'sh';
+  if (/深|深圳/.test(mk)) return 'sz';
+  return 'other';
+}
+
+async function buildIpo() {
+  const url = 'https://datacenter-web.eastmoney.com/api/data/v1/get'
+    + '?reportName=RPTA_APP_IPOAPPLY&columns=ALL&pageSize=120&pageNumber=1'
+    + '&sortColumns=APPLY_DATE&sortTypes=-1&source=WEB&client=WEB';
+  const j = await getJSON(url);
+  const rows = (j && j.result && j.result.data) || [];
+  if (!rows.length) throw new Error('新股接口没有返回数据');
+
+  const today = dateStr;
+  const upcoming = [];   // 申购日还没到，或已申购等上市
+  const recent = [];     // 最近上市
+
+  for (const r of rows) {
+    const name = String(r.SECURITY_NAME_ABBR || r.SECURITY_NAME || '').trim();
+    if (!name) continue;
+    const applyDate = ymd(r.APPLY_DATE);
+    const listDate = ymd(r.LISTING_DATE);
+    const item = {
+      code: String(r.SECURITY_CODE || ''),
+      name,
+      board: ipoBoard(r),
+      market: String(r.MARKET_TYPE_NEW || r.TRADE_MARKET || ''),
+      price: num(r.ISSUE_PRICE),
+      pe: num(r.AFTER_ISSUE_PE),
+      applyDate,
+      listDate,
+      ballotDate: ymd(r.BALLOT_NUM_DATE),
+      lots: num(r.ONLINE_ISSUE_NUM)
+    };
+
+    // 还没上市，且申购日在未来 30 天或刚过去（等上市）
+    if (!listDate && applyDate && daysBetween(today, applyDate) <= FUTURE_DAYS && daysBetween(today, applyDate) >= -45) {
+      upcoming.push(item);
+    } else if (listDate && daysBetween(listDate, today) >= 0 && daysBetween(listDate, today) <= LISTING_DAYS) {
+      recent.push(item);
+    }
+  }
+
+  const sortByDate = (a, b) => (b.applyDate > a.applyDate ? 1 : -1);
+  upcoming.sort(sortByDate);
+  recent.sort((a, b) => (b.listDate > a.listDate ? 1 : -1));
+
+  const payload = {
+    date: dateStr,
+    generatedAt: `${dateStr} ${timeStr}`,
+    source: '东方财富新股申购报表（交易所公布排期）',
+    upcoming: upcoming.slice(0, 8),
+    recent: recent.slice(0, 8)
+  };
+  fs.writeFileSync(path.join(dir, 'ipo.json'), JSON.stringify(payload, null, 2), 'utf8');
+  console.log('写入 data/ipo.json：待申购/待上市 ' + payload.upcoming.length + ' 只，最近上市 ' + payload.recent.length + ' 只');
+}
+
+try {
+  await buildIpo();
+} catch (e) {
+  console.log('新股排期生成失败（不影响其他文件）：' + e.message);
+}

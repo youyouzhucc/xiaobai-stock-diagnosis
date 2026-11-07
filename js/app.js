@@ -203,6 +203,46 @@ async function loadBoards() {
   } catch (e) { /* 榜单拿不到就整块不显示，不影响主流程 */ }
 }
 
+/* ---------- 新股与上市排期 ----------
+ * 数据来自交易所公布的新股申购排期（脚本每日生成 data/ipo.json），不含任何传闻。
+ */
+function ipoItem(x, kind) {
+  const b = UI.BOARDS[x.board];
+  const bd = b ? `<i class="bd ${b.key}" title="${esc(b.name + '需单独开通：' + b.need)}">${b.name}</i>` : '';
+  const price = x.price === null ? '待定' : f2(x.price) + ' 元';
+  const pe = x.pe === null ? '' : ` · 发行 PE ${f1(x.pe)}`;
+  const when = kind === 'wait'
+    ? `申购 ${String(x.applyDate || '').slice(5)}${x.listDate ? ' · 上市 ' + String(x.listDate).slice(5) : ' · 上市待定'}`
+    : `上市 ${String(x.listDate || '').slice(5)}`;
+  return `<div class="ipo-item">
+    <div class="ipo-top"><span class="ipo-name">${esc(x.name)}</span><span class="ipo-code">${esc(x.code)}</span>${bd}</div>
+    <div class="ipo-mid">发行价 <b>${price}</b>${pe}</div>
+    <div class="ipo-when">${when}${x.ballotDate && kind === 'wait' ? ' · 中签公布 ' + String(x.ballotDate).slice(5) : ''}</div>
+  </div>`;
+}
+
+function renderIpo(j) {
+  const up = j.upcoming || [];
+  const rc = j.recent || [];
+  const box = $('ipo');
+  if (!box) return;
+  if (!up.length && !rc.length) { box.hidden = true; return; }
+  box.hidden = false;
+  $('ipo-note').textContent = `交易所公布的新股排期，不含传闻 · 数据 ${j.date || ''}`;
+  $('ipo-body').innerHTML = `
+    ${up.length ? `<div class="ipo-grp-t">等着上市 / 还能申购</div><div class="ipo-grid">${up.map(x => ipoItem(x, 'wait')).join('')}</div>` : ''}
+    ${rc.length ? `<div class="ipo-grp-t">最近上市的</div><div class="ipo-grid">${rc.slice(0, 4).map(x => ipoItem(x, 'done')).join('')}</div>` : ''}
+    <div class="ipo-tip">打新就是按发行价申购，中签了才付钱，上市第一天才能卖。北交所、科创板要先开通权限，主板不用。</div>`;
+}
+
+async function loadIpo() {
+  try {
+    const res = await fetch(`data/ipo.json?d=${dayTag()}`);
+    if (!res.ok) return;
+    renderIpo(await res.json());
+  } catch (e) { /* 拿不到就整块不显示 */ }
+}
+
 function metricText(id, s) {
   const m = BOARD_METRIC[id];
   if (!m) return '';
@@ -317,6 +357,7 @@ async function init() {
   syncPermEntry();
   loadMarket();
   loadBoards();   // 榜单跟大盘并行拉，谁先回来谁先显示
+  loadIpo();      // 新股排期同理，拿不到就整块不显示
 
   const toTop = $('to-top');
   window.addEventListener('scroll', () => {
@@ -1194,11 +1235,11 @@ function oddsOf(it) {
   if (down > -0.5) {
     note = '当前价格已经贴在近一年最低点附近，下跌空间几乎为零，但也说明它一直没起来——先确认基本面没恶化。';
   } else if (odds >= 2) {
-    note = `赔率 ${odds.toFixed(1)}：向下约 ${Math.abs(down).toFixed(0)}%，向上约 ${up.toFixed(0)}%，上涨空间明显大于下跌空间。但赔率好不等于马上涨，支撑位是否有效才是关键。`;
+    note = `向下约 ${Math.abs(down).toFixed(0)}%，向上约 ${up.toFixed(0)}%，涨的空间明显大于跌的空间。赔率好不等于马上涨，撑得住才关键。`;
   } else if (odds >= 1.2) {
-    note = `赔率 ${odds.toFixed(1)}：方向大致对称，属于「赔率一般、靠选中好公司赚钱」的类型。`;
+    note = '上下空间大致对称，不属于「跌下去有人接」的位置，赚不赚钱主要看公司本身。';
   } else {
-    note = `赔率 ${odds.toFixed(1)}：向上空间已经不多，价格更接近一年高位，等回调再买会更划算。`;
+    note = '向上空间已经不多，价格更接近一年高位，等回调再买会更划算。';
   }
   return { low: s.low, high: s.high, down, up, odds, note, lowDate: s.lowDate, highDate: s.highDate, price };
 }
@@ -1247,12 +1288,11 @@ function translationOf(it) {
 
 function divNote(divv, q) {
   if (!divv) return '分红数据暂不可用。';
-  if (!divv.count) return '最近 12 个月没有实施现金分红，股息率按 0 算。不分红不等于差——可能是把钱留着扩产，但要确认它拿这笔钱赚回的 ROE 够不够高。';
+  if (!divv.count) return '最近 12 个月没有实施现金分红，股息率按 0 算。一般多见于把钱留着扩产的成长型公司。';
   const y = divv.yieldPct;
-  let t = `股息率 ${f2(y)}% 的算法：最近 12 个月每股真派了 ${f2(divv.dps)} 元现金（税前），除以现价 ${f2(q.price)} 元。`;
-  if (y >= 4) t += ' 在 A 股属于偏高水平，但要确认不是靠一次性大额派现撑起来的。';
-  else if (y >= 2) t += ' 属于中等水平，比大部分只讲成长的股票厚道。';
-  else t += ' 偏低，通常是成长型公司把钱留着扩产，或者利润本身就不多。';
+  /* 水平判断已经在上面每格说过了，这里只留算法，不重复结论 */
+  let t = `${f2(y)}% = 近 12 个月每股派现 ${f2(divv.dps)} 元 ÷ 现价 ${f2(q.price)} 元（税前口径）。`;
+  if (y >= 4) t += '这种高股息要留意是不是一次性大额派现撑起来的。';
   return t;
 }
 
@@ -1276,6 +1316,112 @@ function gateHTML(code) {
     不确定开没开？打开券商 App，在「我的 → 业务办理」里搜「${b.name}」。</div>`;
 }
 
+/* ---------- 指标读解 ----------
+ * 每个数字直接说「这个水平算高还是低」，不再把指标定义翻译一遍。
+ * 阈值按 A 股常见口径划，只做相对位置的判断。
+ */
+function lvRoe(v) {
+  if (v === null) return '';
+  if (v >= 20) return '很高，属于 A 股里最赚钱的那一档';
+  if (v >= 15) return '偏高，赚钱能力扎实';
+  if (v >= 10) return '中等，及格线上';
+  if (v >= 5) return '偏低，赚钱效率一般';
+  if (v >= 0) return '很低，几乎没给股东赚钱';
+  return '负的，公司正在亏钱';
+}
+function lvEps(v) {
+  if (v === null) return '';
+  if (v >= 2) return '每股一年赚 2 元以上，利润很厚';
+  if (v >= 1) return '每股 1 元以上，扎实';
+  if (v >= 0.3) return '一般水平';
+  if (v >= 0) return '很薄';
+  return '每股在亏';
+}
+function lvMargin(v) {
+  if (v === null) return '';
+  if (v >= 50) return '很高，产品有明显定价权';
+  if (v >= 35) return '偏高，护城河还在';
+  if (v >= 20) return '中等，制造业多是这个水平';
+  if (v >= 10) return '偏低，主要靠走量';
+  return '很薄，成本一涨就吃利润';
+}
+function lvNetMargin(v) {
+  if (v === null) return '';
+  if (v >= 20) return '很高，每 100 元收入能落下 20 元以上';
+  if (v >= 10) return '不错';
+  if (v >= 5) return '一般，算是薄利';
+  if (v >= 0) return '很薄，几乎不剩下什么';
+  return '负的，在亏';
+}
+function lvDebt(v) {
+  if (v === null) return '';
+  if (v < 30) return '很低，基本靠自己扛，风险小';
+  if (v < 50) return '适中';
+  if (v < 65) return '偏高，借的钱不算少';
+  if (v < 80) return '很高，杠杆重，行业下行时更吃力';
+  return '极高，财务压力大';
+}
+function lvCash(v) {
+  if (v === null) return '';
+  if (v >= 1.5) return '每股一年收回 1.5 元以上现金，很实在';
+  if (v >= 0.5) return '还行，赚到的是真钱';
+  if (v >= 0) return '偏薄，利润没完全变成现金';
+  return '现金流是负的，钱在往外流，要警惕';
+}
+function lvPE(v, loss) {
+  if (loss) return '公司在亏钱，这个数用不上';
+  if (v === null) return '';
+  if (v < 10) return '不到 10 倍，比 A 股大多数股票便宜';
+  if (v < 20) return '10–20 倍，A 股的中位区间';
+  if (v < 30) return '20–30 倍，偏贵';
+  if (v < 50) return '30–50 倍，市场给的预期很高';
+  return '50 倍以上，非常贵，跌起来也快';
+}
+function lvPB(v) {
+  if (v === null) return '';
+  if (v < 1) return '低于净资产，属于破净';
+  if (v < 2) return '1–2 倍，常见水平';
+  if (v < 4) return '2–4 倍，偏高';
+  if (v < 8) return '4–8 倍，明显高于账面';
+  return '8 倍以上，估值里装了很多预期';
+}
+function lvPos(v) {
+  if (v === null) return '';
+  if (v < 20) return '接近一年最低，位置很低';
+  if (v < 40) return '偏低位';
+  if (v < 60) return '一年里的中间位置';
+  if (v < 80) return '偏高位';
+  return '接近一年最高，位置很高';
+}
+function lvCap(v) {
+  if (v === null) return '';
+  if (v >= 1e11) return '千亿以上，大盘股，波动相对小';
+  if (v >= 2e10) return '两百亿到千亿，中盘';
+  return '两百亿以内，小盘，波动大';
+}
+function lvTurn(v) {
+  if (v === null) return '';
+  if (v < 1) return '不到 1%，成交清淡，买卖都不热';
+  if (v < 3) return '1–3%，正常水平';
+  if (v < 10) return '3–10%，比较活跃';
+  return '超过 10%，换手过热，多半是短线资金';
+}
+function lvVR(v) {
+  if (v === null) return '';
+  if (v < 0.8) return '不到 1，今天比平时缩量';
+  if (v < 1.5) return '1 附近，跟平时差不多';
+  if (v < 2.5) return '比平时放量';
+  return '明显放量，有资金在动';
+}
+function lvDiv(v) {
+  if (v === null) return '';
+  if (v <= 0) return '这一年没派过现金';
+  if (v < 1) return '不到 1%，分红很少';
+  if (v < 3) return '1–3%，中等';
+  if (v < 5) return '3–5%，现金回报不错';
+  return '5% 以上，很高，留神是不是一次性大额派现';
+}
+
 function renderDetail(it) {
   const q = it.quote, d = it.diag, s = d && d.stats, fin = it.fin;
   const divv = it.dividend;
@@ -1289,25 +1435,25 @@ function renderDetail(it) {
     : '财报数据暂不可用（接口超时或该股暂无数据）';
 
   const baseItems = fin ? UI.kvGrid([
-    { label: ['ROE', 'roe'], value: fin.roe === null ? '—' : f1(fin.roe) + '%', desc: '股东每投 100 元，一年赚回多少' },
+    { label: ['ROE', 'roe'], value: fin.roe === null ? '—' : f1(fin.roe) + '%', desc: lvRoe(fin.roe) },
     d.financial
-      ? { label: ['每股收益', 'eps'], value: fin.eps === null ? '—' : f2(fin.eps) + ' 元', desc: '每一股背后摊到的净利润' }
-      : { label: ['毛利率', 'margin'], value: fin.grossMargin === null ? '—' : f1(fin.grossMargin) + '%', desc: '卖 100 元的货，扣掉直接成本还剩多少' },
+      ? { label: ['每股收益', 'eps'], value: fin.eps === null ? '—' : f2(fin.eps) + ' 元', desc: lvEps(fin.eps) }
+      : { label: ['毛利率', 'margin'], value: fin.grossMargin === null ? '—' : f1(fin.grossMargin) + '%', desc: lvMargin(fin.grossMargin) },
     {
       label: [d.financial ? '净利率' : '资产负债率', d.financial ? 'netmargin' : 'debt'],
       value: d.financial
         ? (fin.netMargin === null ? '—' : f1(fin.netMargin) + '%')
         : (fin.debtRatio === null ? '—' : f1(fin.debtRatio) + '%'),
-      desc: d.financial ? '每 100 元收入最后净剩下多少' : '负债占全部资产的比例，越低越安全'
+      desc: d.financial ? lvNetMargin(fin.netMargin) : lvDebt(fin.debtRatio)
     },
-    { label: ['每股经营现金流', 'cash'], value: fin.cashPerShare === null ? '—' : f2(fin.cashPerShare) + ' 元', desc: '每股背后真实收到的现金，不是账面利润' }
+    { label: ['每股经营现金流', 'cash'], value: fin.cashPerShare === null ? '—' : f2(fin.cashPerShare) + ' 元', desc: lvCash(fin.cashPerShare) }
   ]) : `<div class="kv" style="grid-column:1/-1"><div class="kv-label">财务数据</div><div class="kv-val" style="font-size:15px">暂不可用</div><div class="kv-desc">接口没有返回这只股票的财报，底子分不参与综合评分</div></div>`;
 
   const valItems = UI.kvGrid([
-    { label: ['市盈率 PE', 'pe'], value: q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe) + ' 倍', desc: '按现在的利润，多少年能赚回买入成本' },
-    { label: ['市净率 PB', 'pb'], value: f1(q.pb), desc: '股价相对于每股净资产的倍数' },
-    { label: ['价格分位', 'pos'], value: s ? s.pos.toFixed(0) + '%' : '—', desc: '在近一年最低到最高之间的位置' },
-    { label: ['总市值', 'cap'], value: fcap(q.mktcap), desc: '市场给这家公司的总报价' }
+    { label: ['市盈率 PE', 'pe'], value: q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe) + ' 倍', desc: lvPE(q.pe, q.pe !== null && q.pe <= 0) },
+    { label: ['市净率 PB', 'pb'], value: f1(q.pb), desc: lvPB(q.pb) },
+    { label: ['价格分位', 'pos'], value: s ? s.pos.toFixed(0) + '%' : '—', desc: s ? lvPos(s.pos) : '' },
+    { label: ['总市值', 'cap'], value: fcap(q.mktcap), desc: lvCap(q.mktcap) }
   ]);
 
   const reportRows = fin ? [
@@ -1368,25 +1514,32 @@ function renderDetail(it) {
   </div>
 
   <div class="card">
-    ${UI.title('盈亏空间测算', odds ? (odds.odds === null ? '贴着地板' : `赔率 ${odds.odds.toFixed(1)}`) : '—')}
-    <div class="odds-head">
-      <span class="lo">向下的地板：${odds ? f2(odds.low) + ' 元（' + String(odds.lowDate || '').slice(5) + '）' : '—'}</span>
-      <span class="hi">向上的天花板：${odds ? f2(odds.high) + ' 元（' + String(odds.highDate || '').slice(5) + '）' : '—'}</span>
+    <div class="section-title">
+      <span class="st-name">盈亏空间测算</span>
+      ${odds && odds.odds !== null ? `<span class="st-odds">赔率 ${odds.odds.toFixed(1)}</span>` : ''}
+      <span class="st-inline-note">${odds ? esc(odds.note) : '缺少历史 K 线，算不出空间。'}</span>
     </div>
     <div class="odds">
-      <div class="odds-down"><div class="odds-label">如果跌到地板，还要亏</div><div class="odds-val">${odds ? odds.down.toFixed(0) + '%' : '—'}</div></div>
-      <div class="odds-up"><div class="odds-label">如果涨到天花板，能赚</div><div class="odds-val">${odds ? '+' + odds.up.toFixed(0) + '%' : '—'}</div></div>
+      <div class="odds-down">
+        <div class="odds-label">最多亏</div>
+        <div class="odds-val">${odds ? odds.down.toFixed(0) + '%' : '—'}</div>
+        <div class="odds-sub">地板 ${odds ? f2(odds.low) + ' 元 · ' + String(odds.lowDate || '').slice(5) : '—'}</div>
+      </div>
+      <div class="odds-up">
+        <div class="odds-label">最多赚</div>
+        <div class="odds-val">${odds ? '+' + odds.up.toFixed(0) + '%' : '—'}</div>
+        <div class="odds-sub">天花板 ${odds ? f2(odds.high) + ' 元 · ' + String(odds.highDate || '').slice(5) : '—'}</div>
+      </div>
     </div>
-    <div class="odds-note">${odds ? odds.note : '缺少历史 K 线，算不出空间。'}</div>
   </div>
 
   <div class="card">
     ${UI.title('交易活跃与分红', heatConcl(q))}
     ${UI.kvGrid([
-      { label: ['换手率', 'turnover'], value: q.turnover === null ? '—' : f1(q.turnover) + '%', desc: '最近交易日有多大比例的流通股被买卖过' },
-      { label: ['量比', 'volratio'], value: q.volratio === null ? '—' : f2(q.volratio), desc: '最近交易日每分钟的成交量，是过去 5 天平均的几倍' },
-      { label: ['股息率', 'dividend'], value: divv && divv.yieldPct !== null ? f2(divv.yieldPct) + '%' : '—', desc: '按最近 12 个月真金白银派过的现金算' },
-      { label: '近一年派现', small: true, value: divv && divv.count ? `${divv.count} 次 · 每股 ${f2(divv.dps)} 元` : '没有分红', desc: divv && divv.lastDate ? '最近一次除息日 ' + divv.lastDate : '派现数据来自分红实施记录' }
+      { label: ['换手率', 'turnover'], value: q.turnover === null ? '—' : f1(q.turnover) + '%', desc: lvTurn(q.turnover) },
+      { label: ['量比', 'volratio'], value: q.volratio === null ? '—' : f2(q.volratio), desc: lvVR(q.volratio) },
+      { label: ['股息率', 'dividend'], value: divv && divv.yieldPct !== null ? f2(divv.yieldPct) + '%' : '—', desc: divv ? lvDiv(divv.yieldPct) : '' },
+      { label: '近一年派现', small: true, value: divv && divv.count ? `${divv.count} 次 · 每股 ${f2(divv.dps)} 元` : '没有分红', desc: divv && divv.lastDate ? '最近一次除息日 ' + divv.lastDate : '这一年没有派现记录' }
     ])}
     <div class="st-note">${divNote(divv, q)}</div>
   </div>

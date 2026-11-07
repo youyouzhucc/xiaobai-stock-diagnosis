@@ -1,0 +1,105 @@
+{
+  "date": "2026-11-08",
+  "generatedAt": "2026-11-08 01:08",
+  "source": "东方财富新股申购报表（交易所公布排期）",
+  "upcoming": [
+    {
+      "code": "920309",
+      "name": "菊乐股份",
+      "board": "bse",
+      "market": "北交所",
+      "price": 31.92,
+      "pe": 11.99,
+      "applyDate": "2026-11-04",
+      "listDate": "",
+      "ballotDate": "2026-11-09",
+      "lots": 9994079
+    },
+    {
+      "code": "688827",
+      "name": "钶锐锶",
+      "board": "star",
+      "market": "科创板",
+      "price": 45.37,
+      "pe": 41.86,
+      "applyDate": "2026-10-29",
+      "listDate": "",
+      "ballotDate": "2026-11-02",
+      "lots": 5481000
+    }
+  ],
+  "recent": [
+    {
+      "code": "920085",
+      "name": "森峰激光",
+      "board": "bse",
+      "market": "北交所",
+      "price": 17.79,
+      "pe": 14.99,
+      "applyDate": "2026-10-28",
+      "listDate": "2026-11-06",
+      "ballotDate": "2026-11-02",
+      "lots": 16150000
+    },
+    {
+      "code": "001381",
+      "name": "皇冠新材",
+      "board": "sz",
+      "market": "深交所其他",
+      "price": 16.98,
+      "pe": 25.87,
+      "applyDate": "2026-10-19",
+      "listDate": "2026-11-03",
+      "ballotDate": "2026-10-21",
+      "lots": 31705500
+    },
+    {
+      "code": "920306",
+      "name": "天元重工",
+      "board": "bse",
+      "market": "北交所",
+      "price": 4.48,
+      "pe": 14.93,
+      "applyDate": "2026-10-20",
+      "listDate": "2026-10-29",
+      "ballotDate": "2026-10-23",
+      "lots": 36380000
+    },
+    {
+      "code": "920285",
+      "name": "远大健科",
+      "board": "bse",
+      "market": "北交所",
+      "price": 20.3,
+      "pe": 12,
+      "applyDate": "2026-10-14",
+      "listDate": "2026-10-23",
+      "ballotDate": "2026-10-19",
+      "lots": 18000000
+    },
+    {
+      "code": "301718",
+      "name": "通则康威",
+      "board": "gem",
+      "market": "创业板注册制",
+      "price": 26.88,
+      "pe": 44.72,
+      "applyDate": "2026-10-09",
+      "listDate": "2026-10-22",
+      "ballotDate": "2026-10-13",
+      "lots": 17678000
+    },
+    {
+      "code": "920296",
+      "name": "文峰光电",
+      "board": "bse",
+      "market": "北交所",
+      "price": 11.45,
+      "pe": 13.51,
+      "applyDate": "2026-10-12",
+      "listDate": "2026-10-21",
+      "ballotDate": "2026-10-15",
+      "lots": 20000000
+    }
+  ]
+}

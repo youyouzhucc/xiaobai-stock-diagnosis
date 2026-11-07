@@ -1,6 +1,6 @@
 {
-  "date": "2026-11-07",
-  "generatedAt": "2026-11-07 23:38",
+  "date": "2026-11-08",
+  "generatedAt": "2026-11-08 01:08",
   "count": 30,
   "items": {
     "300015": {
@@ -790,7 +790,7 @@
         "vol": 20.7,
         "mdd": -35.4
       },
-      "dividendYield": 6.75
+      "dividendYield": 5.01
     },
     "601899": {
       "name": "紫金矿业",
@@ -978,53 +978,6 @@
       },
       "dividendYield": 5.16
     },
-    "000858": {
-      "name": "五 粮 液",
-      "total": 71,
-      "base": 63,
-      "val": 82,
-      "trend": 72,
-      "risk": 71,
-      "weights": 4,
-      "financial": false,
-      "keys": {
-        "base": [
-          "roe",
-          "margin",
-          "debt",
-          "cash"
-        ],
-        "val": [
-          "pe",
-          "pb",
-          "pos"
-        ],
-        "trend": [
-          "ma",
-          "ret"
-        ],
-        "risk": [
-          "vol",
-          "mdd"
-        ]
-      },
-      "stats": {
-        "pos": 15,
-        "last": 75.34,
-        "ma20": 73.27,
-        "ma60": 72.03,
-        "high": 117.34,
-        "low": 67.94,
-        "highDate": "2025-11-12",
-        "lowDate": "2026-07-09",
-        "count": 250,
-        "ret20": 6.8,
-        "ret60": 1.2,
-        "vol": 18.9,
-        "mdd": -41.1
-      },
-      "dividendYield": 6.85
-    },
     "000333": {
       "name": "美的集团",
       "total": 74,
@@ -1071,6 +1024,53 @@
         "mdd": -12.9
       },
       "dividendYield": 4.8
+    },
+    "000858": {
+      "name": "五 粮 液",
+      "total": 71,
+      "base": 63,
+      "val": 82,
+      "trend": 72,
+      "risk": 71,
+      "weights": 4,
+      "financial": false,
+      "keys": {
+        "base": [
+          "roe",
+          "margin",
+          "debt",
+          "cash"
+        ],
+        "val": [
+          "pe",
+          "pb",
+          "pos"
+        ],
+        "trend": [
+          "ma",
+          "ret"
+        ],
+        "risk": [
+          "vol",
+          "mdd"
+        ]
+      },
+      "stats": {
+        "pos": 15,
+        "last": 75.34,
+        "ma20": 73.27,
+        "ma60": 72.03,
+        "high": 117.34,
+        "low": 67.94,
+        "highDate": "2025-11-12",
+        "lowDate": "2026-07-09",
+        "count": 250,
+        "ret20": 6.8,
+        "ret60": 1.2,
+        "vol": 18.9,
+        "mdd": -41.1
+      },
+      "dividendYield": 6.85
     },
     "000651": {
       "name": "格力电器",
@@ -1166,6 +1166,53 @@
       },
       "dividendYield": 0.42
     },
+    "002415": {
+      "name": "海康威视",
+      "total": 73,
+      "base": 75,
+      "val": 71,
+      "trend": 64,
+      "risk": 87,
+      "weights": 4,
+      "financial": false,
+      "keys": {
+        "base": [
+          "roe",
+          "margin",
+          "debt",
+          "cash"
+        ],
+        "val": [
+          "pe",
+          "pb",
+          "pos"
+        ],
+        "trend": [
+          "ma",
+          "ret"
+        ],
+        "risk": [
+          "vol",
+          "mdd"
+        ]
+      },
+      "stats": {
+        "pos": 70.1,
+        "last": 35.25,
+        "ma20": 34.1,
+        "ma60": 34.1,
+        "high": 38.63,
+        "low": 27.31,
+        "highDate": "2026-08-03",
+        "lowDate": "2025-12-16",
+        "count": 250,
+        "ret20": 6.9,
+        "ret60": -4.5,
+        "vol": 22.8,
+        "mdd": -15.9
+      },
+      "dividendYield": 3.69
+    },
     "002475": {
       "name": "立讯精密",
       "total": 61,
@@ -1260,13 +1307,13 @@
       },
       "dividendYield": 1.26
     },
-    "002415": {
-      "name": "海康威视",
-      "total": 73,
-      "base": 75,
-      "val": 71,
-      "trend": 64,
-      "risk": 87,
+    "002027": {
+      "name": "分众传媒",
+      "total": 83,
+      "base": 93,
+      "val": 80,
+      "trend": 76,
+      "risk": 66,
       "weights": 4,
       "financial": false,
       "keys": {
@@ -1291,21 +1338,21 @@
         ]
       },
       "stats": {
-        "pos": 70.1,
-        "last": 35.25,
-        "ma20": 34.1,
-        "ma60": 34.1,
-        "high": 38.63,
-        "low": 27.31,
-        "highDate": "2026-08-03",
-        "lowDate": "2025-12-16",
+        "pos": 31.2,
+        "last": 5.55,
+        "ma20": 5.25,
+        "ma60": 4.99,
+        "high": 8.08,
+        "low": 4.4,
+        "highDate": "2026-01-13",
+        "lowDate": "2026-06-29",
         "count": 250,
-        "ret20": 6.9,
-        "ret60": -4.5,
-        "vol": 22.8,
-        "mdd": -15.9
+        "ret20": 13,
+        "ret60": 9,
+        "vol": 25.6,
+        "mdd": -42.1
       },
-      "dividendYield": 3.69
+      "dividendYield": 5.23
     },
     "002304": {
       "name": "洋河股份",
@@ -1353,53 +1400,6 @@
         "mdd": -48.2
       },
       "dividendYield": 3.88
-    },
-    "002027": {
-      "name": "分众传媒",
-      "total": 83,
-      "base": 93,
-      "val": 80,
-      "trend": 76,
-      "risk": 66,
-      "weights": 4,
-      "financial": false,
-      "keys": {
-        "base": [
-          "roe",
-          "margin",
-          "debt",
-          "cash"
-        ],
-        "val": [
-          "pe",
-          "pb",
-          "pos"
-        ],
-        "trend": [
-          "ma",
-          "ret"
-        ],
-        "risk": [
-          "vol",
-          "mdd"
-        ]
-      },
-      "stats": {
-        "pos": 31.2,
-        "last": 5.55,
-        "ma20": 5.25,
-        "ma60": 4.99,
-        "high": 8.08,
-        "low": 4.4,
-        "highDate": "2026-01-13",
-        "lowDate": "2026-06-29",
-        "count": 250,
-        "ret20": 13,
-        "ret60": 9,
-        "vol": 25.6,
-        "mdd": -42.1
-      },
-      "dividendYield": 5.23
     }
   }
 }

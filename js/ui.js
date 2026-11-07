@@ -111,12 +111,13 @@ const UI = (() => {
     return !b || !!perms()[b.key];
   }
 
-  /* 卡片上的板块徽章：没开通时显眼，开通后淡下去 */
+  /* 卡片上的板块徽章：文字只写板块名（全站统一），需要在哪开通靠悬浮提示和详情页说明 */
   function badge(code) {
     const b = boardOf(code);
     if (!b) return '';
     const on = !!perms()[b.key];
-    return `<i class="bd ${b.key}${on ? ' on' : ''}">${b.name}${on ? '' : '·需开通'}</i>`;
+    const tip = on ? `已开通${b.name}` : `${b.name}需单独开通：${b.need}。没开过就在券商 App 里办`;
+    return `<i class="bd ${b.key}${on ? ' on' : ''}" title="${esc(tip)}">${b.name}</i>`;
   }
 
   return { esc, f1, f2, pct, cap, dirCls, card, title, kv, kvGrid, bar, tag, empty, BOARDS, boardOf, perms, setPerm, canBuy, badge };

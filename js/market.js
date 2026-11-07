@@ -56,14 +56,14 @@ function typeOf(industry) {
 /* ---------- 筛选条件定义 ---------- */
 const FILTERS = [
   {
-    key: 'board', all: '全部板块', opts: [
+    key: 'board', label: '板块', all: '不限', opts: [
       { v: 'main', t: '沪深主板（都能买）' },
       { v: 'gem', t: '创业板（要开通）' },
       { v: 'star', t: '科创板（要开通）' }
     ]
   },
   {
-    key: 'type', all: '全部类型', opts: [
+    key: 'type', label: '股票类型', all: '不限', opts: [
       { v: 'consumer', t: '消费 · 吃喝穿用' },
       { v: 'finance', t: '金融 · 银行保险券商' },
       { v: 'tech', t: '科技 · 芯片软件通信' },
@@ -77,14 +77,14 @@ const FILTERS = [
     ]
   },
   {
-    key: 'cap', all: '全部市值', opts: [
+    key: 'cap', label: '市值', all: '不限', opts: [
       { v: 'big', t: '1000 亿以上（大盘）' },
       { v: 'mid', t: '200-1000 亿（中盘）' },
       { v: 'small', t: '200 亿以内（小盘）' }
     ]
   },
   {
-    key: 'pe', all: '全部市盈率', opts: [
+    key: 'pe', label: '市盈率', all: '不限', opts: [
       { v: 'low', t: '10 倍以内（便宜）' },
       { v: 'mid', t: '10-20 倍之间' },
       { v: 'high', t: '20 倍以上（偏贵）' },
@@ -92,7 +92,7 @@ const FILTERS = [
     ]
   },
   {
-    key: 'heat', all: '全部活跃度', opts: [
+    key: 'heat', label: '换手活跃度', all: '不限', opts: [
       { v: 'quiet', t: '冷清 · 换手不到 1%' },
       { v: 'normal', t: '正常 · 换手 1-3%' },
       { v: 'active', t: '活跃 · 换手 3-10%' },
@@ -102,7 +102,7 @@ const FILTERS = [
   {
     /* 涨跌幅、换手率都是「最近一个交易日」的值，休市日显示的仍是上一个交易日，
        所以不能叫「今日」，否则节假日打开会被误读 */
-    key: 'chg', all: '最近交易日涨跌', opts: [
+    key: 'chg', label: '最近交易日涨跌', all: '不限', opts: [
       { v: 'up', t: '上涨' },
       { v: 'down', t: '下跌' }
     ]
@@ -586,7 +586,7 @@ function renderIndustry() {
 /* ---------- 筛选栏 ---------- */
 function buildFilters() {  const box = $('mk-filters');
   box.innerHTML = FILTERS.map(def => `
-    <select class="mk-sel" data-key="${def.key}">
+    <select class="mk-sel" data-key="${def.key}" data-label="${def.label}">
       <option value="">${def.all}</option>
       ${def.opts.map(o => `<option value="${o.v}">${o.t}</option>`).join('')}
     </select>`).join('');
@@ -633,7 +633,10 @@ function skinSelect(sel) {
 
   const sync = () => {
     const cur = sel.options[sel.selectedIndex];
-    trig.textContent = cur ? cur.textContent.trim() : '全部';
+    const lab = sel.dataset.label || '';
+    const txt = cur ? cur.textContent.trim() : '不限';
+    /* 未选时跟首页一样显示「股票类型：不限」，选了就直接显示选项文字 */
+    trig.textContent = (lab && !sel.value) ? `${lab}：${txt}` : txt;
     trig.title = trig.textContent;
     const active = isSort ? sel.value !== 'code' : !!sel.value;
     trig.classList.toggle('on', active);
