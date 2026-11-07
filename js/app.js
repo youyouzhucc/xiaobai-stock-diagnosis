@@ -227,6 +227,8 @@ function ipoItem(x, kind) {
 }
 
 /* ---------- 标题后面的问号：点开讲这块数据怎么读 ---------- */
+let curDetail = null;   // 当前打开的那只票的评分，给分数问号用
+
 const KNOW = {
   market: {
     t: '大盘数据怎么读',
@@ -241,6 +243,13 @@ const KNOW = {
 <p><b>门槛</b>：主板（60 / 00 开头）没门槛；创业板要 20 个交易日日均资产 ≥10 万、且交易满 2 年；科创板、北交所是 ≥50 万、满 2 年。</p>
 <p><b>风险</b>：新股不是稳赚。上市首日跌破发行价（叫「破发」）很常见，发行市盈率越高越要当心。</p>
 <div class="know-warn">这里只列交易所公布的申购日 / 上市日，不含「听说要上市」的传闻——传闻没法核实，也不该拿来当依据。</div>`
+  },
+  score: {
+    t: '这个分数怎么读',
+    body: `<p><b>怎么算的</b>：底子 40%（赚钱能力 + 财务稳不稳）、估值 30%（贵不贵）、趋势 20%（最近往哪走）、风险 10%（波动和最大回撤）。某一项数据缺了就重新分配权重，绝不拿 0 分替代。</p>
+<p><b>档位只是体检结论</b>：80 以上「体检良好」、65–79「体检尚可」、50–64「有疑点」、50 以下「多项异常」。它描述的是这家公司当下有没有硬伤，不是明天会不会涨。</p>
+<p><b>为什么先看「核心风险」那一条</b>：总分再高，也先把最弱的一项摆出来。长板决定它像不像好公司，短板决定你会不会亏钱。</p>
+<div class="know-warn">分数是体检报告，不是推荐度，更不是买入信号。真要动手，还得看价格位置、你自己的仓位和承受力。</div>`
   }
 };
 
@@ -248,11 +257,14 @@ function openKnow(key) {
   closeKnow();
   const k = KNOW[key];
   if (!k) return;
+  /* 分数这一条要把当前这只票的四项得分一起带出来，不然光看档位没意义 */
+  let body = k.body;
+  if (key === 'score' && curDetail) body = `<p>${scoreLine(curDetail)}</p>${body}`;
   const mask = document.createElement('div');
   mask.className = 'know-mask';
   mask.innerHTML = `<div class="know-card">
     <div class="know-h"><span class="know-t">${k.t}</span><button class="know-x" type="button" aria-label="关闭">×</button></div>
-    <div class="know-body">${k.body}</div>
+    <div class="know-body">${body}</div>
   </div>`;
   mask.addEventListener('click', e => {
     if (e.target === mask || e.target.classList.contains('know-x')) closeKnow();
@@ -1104,6 +1116,7 @@ async function openDetail(secid) {
 
 function goHome() {
   state.current = null;
+  curDetail = null;
   if (state.chart) { state.chart.dispose(); state.chart = null; }
   switchView('home');
   renderList();
@@ -1552,6 +1565,7 @@ function renderDetail(it) {
   const def = defenseOf(it);
   const hp = healthOf(d && d.total);
   const w = weakestOf(it);
+  curDetail = d || null;
 
   const finNote = fin
     ? `财报口径：${esc(fin.report)}${fin.notice ? ' · 披露于 ' + esc(fin.notice) : ''}`
@@ -1598,9 +1612,8 @@ function renderDetail(it) {
         <div class="d-sub">${q.code} · ${esc(q.industry)}${UI.badge(q.code)}</div>
       </div>
       <div class="d-score-wrap">
+        <button class="q-btn" type="button" data-know="score" aria-label="分数怎么读">?</button>
         <div class="d-score" style="background:${scoreColor(d.total)}">${d.total === null ? '—' : d.total}<small>分</small></div>
-        <div class="d-health ${hp.cls}">${hp.long}</div>
-        <div class="d-rank" id="d-rank">全市场排名加载中…</div>
       </div>
     </div>
 
@@ -1608,7 +1621,6 @@ function renderDetail(it) {
       <span class="weak-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}</span>
       <span class="weak-w">${w.why}</span>
     </div>` : ''}
-    <div class="score-note">${scoreLine(d)}</div>
 
     <div class="d-pricebar">
       <span>现价 <span class="big">${f2(q.price)}</span></span>
@@ -1616,6 +1628,7 @@ function renderDetail(it) {
       <span>PE ${q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe)}</span>
       <span>PB ${f1(q.pb)}</span>
       <span>市值 ${fcap(q.mktcap)}</span>
+      <span class="d-rank" id="d-rank">全市场排名加载中…</span>
     </div>
 
     ${gateHTML(q.code)}
