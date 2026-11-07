@@ -468,7 +468,9 @@ function render() {
   $('total').textContent = state.total || state.rows.length;
   $('list').innerHTML = slice.length
     ? slice.map(rowHTML).join('')
-    : `<div class="empty">这个筛选条件下没有股票，换一组试试</div>`;
+    : (state.loading && state.loaded < state.pages
+      ? `<div class="empty">还在载入（已到 ${state.loaded}/${state.pages} 页），符合条件的股票可能在后面几页，稍等一下</div>`
+      : `<div class="empty">这个筛选条件下没有股票，换一组试试</div>`);
 
   $('pager-info').innerHTML = `第 <b>${state.page}</b> / ${pages} 页`;
   $('btn-prev').disabled = state.page <= 1;
