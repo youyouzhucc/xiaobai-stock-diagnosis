@@ -34,14 +34,67 @@ const POOL = [
 ];
 
 const FILTER_DEFS = [
+  {
+    key: 'type', label: '股票类型', opts: [
+      { v: '', t: '不限' },
+      { v: 'consumer', t: '消费' },
+      { v: 'finance', t: '金融' },
+      { v: 'tech', t: '科技' },
+      { v: 'media', t: '传媒' },
+      { v: 'medical', t: '医药' },
+      { v: 'cycle', t: '周期' },
+      { v: 'utility', t: '公用事业' },
+      { v: 'industrial', t: '制造' }
+    ]
+  },
+  {
+    key: 'cap', label: '市值', opts: [
+      { v: '', t: '不限' },
+      { v: 'big', t: '1000 亿以上' },
+      { v: 'mid', t: '200-1000 亿' },
+      { v: 'small', t: '200 亿以内' }
+    ]
+  },
+  {
+    key: 'pe', label: '市盈率', opts: [
+      { v: '', t: '不限' },
+      { v: 'low', t: '10 倍以内' },
+      { v: 'mid', t: '10-20 倍' },
+      { v: 'high', t: '20 倍以上' },
+      { v: 'loss', t: '亏损' }
+    ]
+  },
   { key: 'strategy', label: '资金期限', opts: [{ v: '', t: '不限' }, { v: 'long', t: '长期闲钱' }, { v: 'short', t: '短期波段' }] },
   { key: 'risk', label: '风险承受', opts: [{ v: '', t: '不限' }, { v: 'low', t: '稳健保守' }, { v: 'high', t: '追求弹性' }] },
-  { key: 'focus', label: '更看重', opts: [{ v: '', t: '不限' }, { v: 'base_good', t: '底子扎实' }, { v: 'val_low', t: '估值便宜' }, { v: 'trend_up', t: '趋势向上' }] }
+  { key: 'focus', label: '更看重', opts: [{ v: '', t: '不限' }, { v: 'base_good', t: '底子扎实' }, { v: 'val_low', t: '估值便宜' }, { v: 'trend_up', t: '趋势向上' }] },
+  { key: 'chg', label: '今日', opts: [{ v: '', t: '不限' }, { v: 'up', t: '上涨' }, { v: 'down', t: '下跌' }] }
 ];
+
+/* 行业 -> 股票类型（东财行业名末尾常带 Ⅱ/Ⅲ 序号，先去掉再匹配） */
+const TYPE_GROUPS = [
+  ['finance', ['银行', '保险', '证券', '多元金融', '信托', '期货']],
+  ['tech', ['半导体', '消费电子', '光学光电子', '元件', '软件', '计算机', 'IT服务', '通信', '互联网', '人工智能']],
+  ['media', ['广告', '传媒', '游戏', '影视', '出版', '教育']],
+  ['medical', ['医疗', '医药', '生物制品', '化学制药', '中药', '疫苗']],
+  ['consumer', ['白酒', '食品', '饮料', '乳品', '啤酒', '零售', '家电', '纺织', '服装', '旅游', '酒店', '餐饮', '农牧', '养殖', '农产品']],
+  ['utility', ['电力', '水务', '燃气', '环保', '交通运输', '港口', '铁路', '航空', '机场', '物流']],
+  ['cycle', ['煤炭', '钢铁', '有色', '小金属', '贵金属', '稀有金属', '化工', '化学', '建材', '水泥', '房地产', '石油', '化纤']],
+  ['industrial', ['汽车', '机械', '设备', '工程机械', '光伏', '风电', '电池', '电气', '军工', '航天', '船舶', '仪器', '轨交']]
+];
+
+function typeOf(industry) {
+  const s = String(industry || '').replace(/[ⅠⅡⅢ]+$/g, '');
+  if (s.includes('电力设备') || s.includes('电网')) return 'industrial';
+  for (let i = 0; i < TYPE_GROUPS.length; i++) {
+    const words = TYPE_GROUPS[i][1];
+    for (let j = 0; j < words.length; j++) if (s.includes(words[j])) return TYPE_GROUPS[i][0];
+  }
+  return 'other';
+}
 
 const state = {
   items: [],
-  filters: { kw: '', strategy: '', risk: '', focus: '' },
+  filters: { kw: '', type: '', cap: '', pe: '', strategy: '', risk: '', focus: '', chg: '' },
   done: 0,
   total: 0,
   bootError: null,
@@ -87,7 +140,6 @@ async function init() {
   } catch (e) {
     state.bootError = e.message || '行情获取失败';
     $('list').innerHTML = `<div class="error-state">行情获取失败：${esc(state.bootError)}<br>可能是网络或数据接口临时不可用。<br><button onclick="location.reload()">重新加载</button></div>`;
-    $('status-text').textContent = '行情不可用';
   }
 
   API.kline('INDEX', 250)
@@ -197,6 +249,36 @@ function matchFilters(it) {
   const f = state.filters;
   const s = it.diag && it.diag.stats;
 
+  // 股票类型：按行业归类，不依赖财报，体检中也能筛
+  if (f.type && typeOf(q.industry) !== f.type) return false;
+
+  // 市值分档
+  if (f.cap) {
+    const c = q.mktcap;
+    if (c === null) return false;
+    if (f.cap === 'big' && c < 1e11) return false;
+    if (f.cap === 'mid' && (c < 2e10 || c >= 1e11)) return false;
+    if (f.cap === 'small' && c >= 2e10) return false;
+  }
+
+  // 市盈率分档
+  if (f.pe) {
+    const pe = q.pe;
+    if (pe === null) return false;
+    if (f.pe === 'loss' && pe > 0) return false;
+    if (f.pe === 'low' && !(pe > 0 && pe <= 10)) return false;
+    if (f.pe === 'mid' && !(pe > 10 && pe <= 20)) return false;
+    if (f.pe === 'high' && !(pe > 20)) return false;
+  }
+
+  // 今日涨跌
+  if (f.chg) {
+    const p = q.pct;
+    if (p === null) return false;
+    if (f.chg === 'up' && p <= 0) return false;
+    if (f.chg === 'down' && p >= 0) return false;
+  }
+
   if (f.strategy === 'long') {
     if (!s || s.vol > 32 || (it.diag.base !== null && it.diag.base < 65)) return false;
   }
@@ -232,22 +314,17 @@ function renderList() {
   if (state.bootError) return;
 
   const visible = sortItems(state.items.filter(matchFilters));
-  const hasFilter = !!(state.filters.kw || state.filters.strategy || state.filters.risk || state.filters.focus);
+  const f = state.filters;
+  const hasFilter = !!(f.kw || f.type || f.cap || f.pe || f.strategy || f.risk || f.focus || f.chg);
   const doneCount = state.items.filter(i => i.status === 'done' || i.status === 'partial' || i.status === 'error').length;
   const strain = state.total - doneCount;
-  const partialCount = state.items.filter(i => i.status === 'partial').length;
-
-  $('status-text').innerHTML = `实时行情 · 已体检 <b>${doneCount}/${state.total}</b>${strain > 0 ? ' · 后台还在算' : ''}${partialCount ? ` · <b>${partialCount}</b> 只缺历史K线` : ''}`;
 
   const direct = directCardHTML();
-  const hitCount = visible.length + (direct ? 1 : 0);
-  $('status-right').textContent = state.filters.kw ? `命中 ${hitCount} 只` : '';
-
   if (!visible.length && !direct) {
     list.innerHTML = `<div class="empty">${hasFilter ? '当前条件下没有匹配的股票' : '暂无数据'}${strain > 0 ? '<br>体检还没做完，等几秒再试' : ''}</div>`;
     return;
   }
-  list.innerHTML = direct + visible.map(cardHTML).join('');
+  list.innerHTML = `<div class="stock-grid">${direct}${visible.map(cardHTML).join('')}</div>`;
 }
 
 /* 搜索框里输入 6 位代码、且不在精选池时，给一张「直接诊断」卡片 */
