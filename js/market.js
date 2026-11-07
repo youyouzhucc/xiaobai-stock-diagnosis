@@ -19,6 +19,15 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 const cls = v => { const n = num(v); return n === null ? 'flat' : (n > 0 ? 'up' : n < 0 ? 'down' : 'flat'); };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+/* 页脚版本号自动跟随资源 URL 上的 ?v= */
+const VERSION = (() => {
+  try {
+    const s = document.querySelector('script[src*="market.js"]');
+    return 'v' + (new URL(s.src).searchParams.get('v') || '?');
+  } catch (e) { return 'v?'; }
+})();
+document.querySelectorAll('.ver').forEach(el => { el.textContent = VERSION; });
+
 /* ---------- 行业 -> 类型（和精选池同一套规则） ---------- */
 const TYPE_GROUPS = [
   ['finance', ['银行', '保险', '证券', '多元金融', '信托', '期货']],

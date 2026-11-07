@@ -1,4 +1,4 @@
-﻿/* 小白诊股 · 页面逻辑 */
+/* 小白诊股 · 页面逻辑 */
 
 const POOL = [
   { secid: '1.600519', name: '贵州茅台', py: 'gzmt' },
@@ -117,6 +117,19 @@ function typeOf(industry) {
   return 'other';
 }
 
+/* 页脚版本号自动跟随资源 URL 上的 ?v=，不用再手写 */
+const VERSION = (() => {
+  try {
+    const s = document.querySelector('script[src*="app.js"]');
+    return 'v' + (new URL(s.src).searchParams.get('v') || '?');
+  } catch (e) { return 'v?'; }
+})();
+
+function syncVersion() {
+  const t = VERSION + ' · ' + new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  document.querySelectorAll('.ver').forEach(el => { el.textContent = t; });
+}
+
 const state = {
   items: [],
   filters: { kw: '', type: '', cap: '', pe: '', heat: '', div: '', strategy: '', risk: '', focus: '', chg: '' },
@@ -145,6 +158,7 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 /* ---------- 启动 ---------- */
 async function init() {
   renderFilters();
+  syncVersion();
   loadMarket();
 
   const toTop = $('to-top');
@@ -323,19 +337,26 @@ function ensureDiag(item) {
     return item;
   })().then(r => {
     item.pending = null;
-    scheduleRender();
+    onDiagDone();
     return r;
   }).catch(e => {
     item.status = 'error';
     item.err = e.message || '数据获取失败';
     item.pending = null;
-    scheduleRender();
+    onDiagDone();
     return item;
   });
   return item.pending;
 }
 
+/* 体检结果先攒着，全部算完再一次性填入，整个过程中卡片内容不变、不闪 */
+let diagDoneCount = 0;
+function onDiagDone() { diagDoneCount++; }
+
 async function diagnoseQueue() {
+  const hint = $('diag-hint');
+  if (hint) hint.textContent = '体检中，分数会在全部算完后一并填入';
+
   const queue = state.items.slice();
   const worker = async () => {
     while (queue.length) {
@@ -345,6 +366,14 @@ async function diagnoseQueue() {
     }
   };
   await Promise.all([worker(), worker()]);
+
+  if (hint) hint.textContent = '体检完成，分数已填入';
+  scheduleRender(); // 一次性填入所有分数
+
+  // 兜底：45 秒还没算完（接口卡住时）先把手上的结果填进去
+  setTimeout(() => {
+    if (diagDoneCount < state.total) scheduleRender();
+  }, 45000);
 }
 
 /* ---------- 列表 ---------- */
@@ -522,17 +551,19 @@ function cardHTML(it) {
   } else if (it.status === 'error') {
     tags.push(tagOf('mid', '数据不全'));
   } else {
-    tags.push(tagOf('mid', '体检中…'));
+    tags.push(tagOf('mid', '待体检'));
   }
 
   const score = d && d.total !== null
     ? `<span class="si-score" style="color:${scoreColor(d.total)}">${d.total}<small>分</small></span>`
-    : `<span class="si-score pending">${it.status === 'error' ? '暂无' : '计算中'}</span>`;
+    : `<span class="si-score pending">—</span>`;
 
-  const extra = [];
-  if (q.turnover !== null && q.turnover !== undefined) extra.push(`换手 <b>${f1(q.turnover)}%</b>`);
-  if (q.volratio !== null && q.volratio !== undefined) extra.push(`量比 <b>${f1(q.volratio)}</b>`);
-  if (it.dividend && it.dividend.yieldPct !== null) extra.push(`股息 <b>${f2(it.dividend.yieldPct)}%</b>`);
+  /* 三项固定占位：体检没跑完先显示「—」，数字补上来时行高不变，卡片不会被撑动 */
+  const extra = [
+    `换手 <b>${q.turnover === null || q.turnover === undefined ? '—' : f1(q.turnover) + '%'}</b>`,
+    `量比 <b>${q.volratio === null || q.volratio === undefined ? '—' : f1(q.volratio)}</b>`,
+    `股息 <b>${it.dividend && it.dividend.yieldPct !== null ? f2(it.dividend.yieldPct) + '%' : '—'}</b>`
+  ];
 
   return `<div class="stock-item" data-code="${q.code}" onclick="App.openDetail('${q.secid}')">
     <div class="si-top">
@@ -986,10 +1017,11 @@ function renderDetail(it) {
     行情、历史 K 线来自东方财富公开接口，财务数据来自上市公司定期报告。<br>
     <b>以上全部是客观数据整理，不构成任何投资建议。</b><br>
     历史数据不代表未来，股市有风险，投资需谨慎。
-    <div class="ver">v11</div>
+    <div class="ver">${VERSION}</div>
   </div>`;
 
   renderChart(state.range);
+  syncVersion();
 }
 
 /* ---------- 图表 ---------- */

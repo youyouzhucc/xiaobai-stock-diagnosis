@@ -119,8 +119,14 @@ body {
 .tutor-sec p { font-size: 12.5px; line-height: 1.7; color: var(--text-sub); margin: 3px 0; }
 .tutor-warn { font-size: 12px; line-height: 1.6; color: var(--red); background: var(--fill-red); border-radius: 8px; padding: 9px 11px; }
 
-/* ---------- 回到顶部 ---------- */
-.to-top {
+/* ---------- 体检提示（静态，不带进度跳动） ---------- */
+.diag-hint {
+    font-size: 12px; line-height: 1.6; color: var(--text-weak);
+    background: #fff; border: 1px dashed var(--line-strong); border-radius: 9px;
+    padding: 8px 12px; margin: 0 0 10px;
+}
+
+/* ---------- 回到顶部 ---------- */.to-top {
     position: fixed; right: 18px; bottom: 18px; width: 42px; height: 42px;
     border: 1px solid var(--line-strong); background: #fff; color: var(--text-sub);
     border-radius: 50%; font-size: 18px; cursor: pointer; line-height: 1;
