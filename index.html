@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小白诊股 - 终极人话版</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        /* ===== 🎨 经典莫兰迪色系 ===== */
+        :root {
+            --bg-color: #F6F3ED;       
+            --card-bg: #FFFFFF;        
+            --text-main: #2C2B29;      
+            --text-sub: #5A5652;       
+            --text-weak: #8A8581;      
+            
+            --color-green: #6B8277;    
+            --color-orange: #B89A7D;   
+            --color-blue: #7B8F9D;     
+            --color-red: #AB7474;      
+            
+            --fill-green: #E8EEEA;     
+            --fill-orange: #F6EFE9;    
+            --fill-blue: #F0F3F5;      
+            --fill-red: #F9F2F2;       
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0; padding: 12px;
+            display: flex; justify-content: center;
+            -webkit-font-smoothing: antialiased;
+        }
+        .app-container { width: 100%; max-width: 680px; }
+        
+        .view { display: none; animation: fadeIn 0.3s ease; }
+        .view.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background-color: var(--card-bg); border-radius: 14px;
+            padding: 16px; box-shadow: 0 2px 10px rgba(60, 55, 50, 0.04);
+            margin-bottom: 12px;
+        }
+        
+        /* ======= 首页：搜索与下拉筛选 ======= */
+        .search-header { display: flex; align-items: center; margin-bottom: 12px; gap: 10px; }
+        .search-box { flex: 1; background: #fff; border-radius: 10px; padding: 10px 14px; display: flex; align-items: center; box-shadow: 0 2px 8px rgba(60, 55, 50, 0.04); }
+        .search-box input { border: none; outline: none; background: transparent; width: 100%; font-size: 14px; color: var(--text-main); }
+        .search-box input::placeholder { color: var(--text-weak); }
+
+        .dropdown-filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; position: relative; z-index: 50; }
+        .dropdown-wrapper { position: relative; }
+        .dropdown-trigger { 
+            background: #fff; border: 1px solid #E8E4DC; border-radius: 8px;
+            padding: 8px 28px 8px 12px; font-size: 13px; color: var(--text-sub);
+            cursor: pointer; transition: all 0.2s; user-select: none;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .dropdown-trigger:hover { border-color: var(--text-weak); }
+        .dropdown-trigger.active { border-color: var(--color-green); color: var(--color-green); font-weight: 600; background: var(--fill-green); }
+        .select-arrow {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            width: 0; height: 0; border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 5px solid var(--text-weak);
+            pointer-events: none; transition: transform 0.2s;
+        }
+        .dropdown-trigger.active ~ .select-arrow { border-top-color: var(--color-green); transform: translateY(-50%) rotate(180deg); }
+
+        .dropdown-menu {
+            display: none; position: absolute; top: 100%; left: 0; margin-top: 6px;
+            background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(60, 55, 50, 0.08);
+            min-width: 140px; z-index: 100; border: 1px solid #EFECE6; overflow: hidden;
+        }
+        .dropdown-menu.show { display: block; animation: slideDown 0.2s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 10px 12px; font-size: 13px; color: var(--text-main); cursor: pointer; transition: background 0.1s; white-space: nowrap; }
+        .dropdown-item:hover { background: var(--bg-color); }
+        .dropdown-item.selected { background: var(--fill-green); color: var(--color-green); font-weight: 600; }
+
+        /* ======= 列表页 ======= */
+        .stock-item { background: #fff; border-radius: 12px; padding: 16px; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(60, 55, 50, 0.03); cursor: pointer; transition: transform 0.1s; }
+        .stock-item:active { transform: scale(0.98); }
+        .stock-item-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .stock-name-row { display: flex; align-items: baseline; gap: 8px;}
+        .stock-name { font-size: 17px; font-weight: 600; color: var(--text-main); }
+        .stock-code { font-size: 12px; color: var(--text-weak); }
+        .score-badge { display: flex; align-items: baseline; font-weight: 700; font-size: 20px; letter-spacing: -0.5px;}
+        .score-badge span { font-size: 11px; font-weight: 500; margin-left: 2px; }
+        .stock-item-data { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #EFECE6; }
+        .data-pill { font-size: 12px; color: var(--text-sub); display: flex; align-items: center; gap: 4px;}
+        .data-pill b { color: var(--text-main); font-weight: 600; }
+        .stock-tags { display: flex; gap: 6px; flex-wrap: wrap;}
+        .s-tag { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;}
+        .s-tag.good { background: var(--fill-green); color: var(--color-green); border: 1px solid #D1DCD6; }     
+        .s-tag.warn { background: var(--fill-orange); color: var(--color-orange); border: 1px solid #E6D8CD; }    
+        .s-tag.bad { background: var(--fill-red); color: var(--color-red); border: 1px solid #EBD6D6; }          
+        .s-tag.neutral { background: #EFECE6; color: var(--text-sub); border: 1px solid #E2DED8; }               
+
+        /* ======= 详情页样式 ======= */
+        .back-btn { display: inline-flex; align-items: center; font-size: 14px; color: var(--text-sub); cursor: pointer; margin-bottom: 12px; font-weight: 500;}
+        .back-btn::before { content: "‹"; font-size: 20px; margin-right: 4px; line-height: 1;}
+        
+        .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;}
+        .title { font-size: 20px; font-weight: 600; color: var(--text-main); letter-spacing: 0.5px;}
+        .sub-text { font-size: 12px; color: var(--text-sub); margin-top: 4px; }
+        .score-container { display: flex; flex-direction: column; align-items: flex-end; }
+        .detail-score-badge { color: white; padding: 4px 12px; border-radius: 12px; font-size: 18px; font-weight: 700; display: flex; align-items: baseline;}
+        .detail-score-badge span { font-size: 12px; font-weight: 500; margin-left: 2px;}
+        
+        .ticker-bar { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 0 0 12px 0; margin-bottom: 16px;
+            font-size: 13px; color: var(--text-sub); border-bottom: 1px solid #EFECE6; 
+            flex-wrap: wrap; gap: 8px;
+        }
+        .ticker-data-left { display: flex; gap: 12px; align-items: center; }
+        .ticker-val { color: var(--text-main); font-weight: 600; font-size: 14px; margin-left: 2px;}
+        .score-anchor { font-size: 11px; color: var(--color-green); font-weight: 600; background: var(--fill-green); padding: 2px 8px; border-radius: 4px; border: 1px solid #D1DCD6;}
+        
+        /* 💡 操作建议模块 */
+        .unified-advice-panel { margin-top: 4px; }
+        .advice-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;}
+        .advice-title { font-size: 15px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px;}
+        
+        /* 情绪提示栏 */
+        .sentiment-alert {
+            background: var(--fill-blue); color: var(--color-blue); font-size: 13px;
+            padding: 10px 12px; border-radius: 8px; margin-bottom: 12px;
+            display: flex; align-items: flex-start; gap: 6px; line-height: 1.5; font-weight: 600;
+        }
+        
+        .advice-main-text { font-size: 15px; line-height: 1.5; color: var(--text-main); font-weight: 700; margin-bottom: 16px;}
+        
+        .advice-block { margin-bottom: 14px; }
+        .advice-block:last-child { margin-bottom: 0; }
+        
+        .advice-subtitle { font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; display: flex; align-items: center;}
+        .advice-content { font-size: 13px; line-height: 1.6; color: var(--text-sub); padding-left: 2px;}
+
+        .detail-list-item { display: flex; align-items: flex-start; margin-bottom: 6px;}
+        .detail-list-item:last-child { margin-bottom: 0;}
+        .dot { width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; flex-shrink: 0; margin-top: 6px;}
+        .dot-green { background-color: var(--color-green); }
+        .dot-red { background-color: var(--color-red); }
+
+        /* 📊 博弈与赔率模块 */
+        .price-limits { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; margin-bottom: 8px; margin-top: 12px;}
+        .price-limit-down { color: var(--color-green); }
+        .price-limit-up { color: var(--color-red); }
+
+        .odds-blocks { display: flex; gap: 10px;}
+        .odds-block { flex: 1; border-radius: 8px; padding: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; }
+        .odds-down { background: var(--fill-green); border: 1px solid #D1DCD6; }
+        .odds-up { background: var(--fill-red); border: 1px solid #EBD6D6; }
+        
+        .odds-label { font-size: 12px; font-weight: 500; margin-bottom: 4px;}
+        .odds-down .odds-label { color: var(--color-green); }
+        .odds-up .odds-label { color: var(--color-red); }
+        
+        .odds-val-big { font-size: 22px; font-weight: 800; }
+        .odds-down .odds-val-big { color: var(--color-green); }
+        .odds-up .odds-val-big { color: var(--color-red); }
+
+        .module-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+        .title-wrap { display: flex; flex-direction: column; gap: 4px; flex: 1; padding-right: 12px;}
+        .module-title { font-size: 16px; font-weight: 600; color: var(--text-main); letter-spacing: 0.5px;}
+        .conclusion-inline { font-size: 14px; font-weight: 600; color: var(--text-main); line-height: 1.3; }
+        .module-score { font-size: 14px; color: var(--text-sub); font-weight: 700; margin-top: 2px; letter-spacing: 0.5px;}
+        
+        .progress-bg { background-color: #E8E4DC; border-radius: 4px; height: 6px; width: 100%; margin: 4px 0 14px 0; }
+        .progress-fill { height: 100%; border-radius: 4px; }
+        
+        .three-cols { display: flex; gap: 8px; }
+        .mini-card { flex: 1; background-color: var(--bg-color); padding: 12px 10px; border-radius: 8px; display: flex; flex-direction: column; justify-content: space-between; }
+        .mini-label { font-size: 12px; color: var(--text-sub); margin-bottom: 4px; font-weight: 500;}
+        .mini-val { font-size: 18px; font-weight: 700; color: var(--text-main); margin-bottom: 6px; letter-spacing: -0.2px;}
+        .mini-desc { font-size: 11px; color: var(--text-sub); line-height: 1.5; letter-spacing: 0.2px;}
+        
+        .trend-tags { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .trend-tag { font-size: 12px; padding: 3px 10px; border-radius: 4px; display: flex; align-items: center; font-weight: 600;}
+        .tag-green-bg { background: var(--fill-green); color: var(--color-green); border: 1px solid #D1DCD6; }
+        .tag-orange-bg { background: var(--fill-orange); color: var(--color-orange); border: 1px solid #E6D8CD; }
+        
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .chart-title-area { display: flex; align-items: center; gap: 8px; }
+        .chart-sub-title { font-size: 13px; color: var(--text-sub); font-weight: 500; }
+        .chart-legend { display: flex; gap: 8px; font-size: 11px; color: var(--text-sub); align-items: center; font-weight: 500;}
+        .legend-line { width: 12px; height: 3px; background: var(--color-blue); display: inline-block; margin-right: 4px; border-radius: 2px; vertical-align: middle;}
+        .legend-dash { width: 12px; height: 0; border-bottom: 2px dashed #A6A29D; display: inline-block; margin-right: 4px; vertical-align: middle;}
+        
+        .time-filters { display: flex; background: #EFECE6; border-radius: 6px; padding: 2px; }
+        .time-btn { font-size: 12px; padding: 4px 10px; border-radius: 4px; cursor: pointer; color: var(--text-sub); transition: all 0.2s; user-select: none; font-weight: 500;}
+        .time-btn.active { background: #FFFFFF; color: var(--text-main); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        
+        #trendChart { width: 100%; height: 160px; }
+        
+        .chart-translation {
+            font-size: 13px; color: var(--text-main); margin-top: 12px; padding: 12px;
+            background: var(--fill-green); border-radius: 8px; line-height: 1.5; font-weight: 500;
+        }
+        
+        .news-list { display: flex; flex-direction: column; gap: 12px; margin-top: 12px;}
+        .news-item { border-bottom: 1px dashed #EFECE6; padding-bottom: 12px; }
+        .news-item:last-child { border-bottom: none; padding-bottom: 0; }
+        .news-title { font-size: 14px; font-weight: 600; color: var(--text-main); line-height: 1.4; margin-bottom: 6px;}
+        .news-meta { display: flex; align-items: center; font-size: 11px; color: var(--text-weak); margin-bottom: 8px;}
+        .news-ai-box { background: var(--bg-color); border-radius: 8px; padding: 10px; display: flex; gap: 8px; align-items: flex-start;}
+        .ai-tag { font-size: 11px; padding: 1px 6px; border-radius: 4px; font-weight: bold; flex-shrink: 0; margin-top: 1px;}
+        .ai-tag-good { background: var(--fill-green); color: var(--color-green); border: 1px solid #D1DCD6;}
+        .ai-tag-bad { background: var(--fill-red); color: var(--color-red); border: 1px solid #EBD6D6;}
+        .ai-tag-mid { background: #EFECE6; color: var(--text-sub); border: 1px solid #E2DED8;}
+        .news-ai-text { font-size: 12px; color: var(--text-sub); line-height: 1.5; }
+        
+        .disclaimer { font-size: 11px; color: var(--text-weak); text-align: center; margin-top: 16px; line-height: 1.6; padding: 0 10px; letter-spacing: 0.2px;}
+
+        .clickable-term { cursor: pointer; display: inline-flex; align-items: center; background-color: #EFECE6; padding: 2px 6px; border-radius: 4px; color: var(--text-main); font-weight: 500; transition: all 0.1s ease; user-select: none; z-index: 10; position: relative; font-size: 11px; }
+        .clickable-term:hover { background-color: #E4DFD5; }
+        .clickable-term::after { content: "?"; display: inline-block; width: 10px; height: 10px; line-height: 10px; text-align: center; background: var(--text-weak); color: #fff; border-radius: 50%; font-size: 8px; margin-left: 4px; pointer-events: none; }
+        
+        .popover-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 999; background: rgba(0,0,0,0.05); }
+        .popover-content { position: fixed; background: #fff; width: 280px; border-radius: 12px; padding: 16px; box-shadow: 0 4px 24px rgba(60, 55, 50, 0.15); z-index: 1000; display: none; font-size: 13px; color: var(--text-main); line-height: 1.6; border: 1px solid #EFECE6; opacity: 0; transform: scale(0.95); transition: opacity 0.15s ease, transform 0.15s ease; }
+        .popover-content.show { opacity: 1; transform: scale(1); }
+        .popover-arrow { position: absolute; width: 10px; height: 10px; background: #fff; transform: rotate(45deg); border-top: 1px solid #EFECE6; border-left: 1px solid #EFECE6; }
+        .popover-title { font-weight: 600; margin-bottom: 8px; color: var(--text-main); font-size: 14px;}
+        .case-text { background: #F6F3ED; padding: 10px; border-radius: 6px; color: var(--text-sub); font-size: 12px; margin-top: 10px; line-height: 1.5;}
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <!-- 首页视图 -->
+    <div id="home-view" class="view active">
+        <div class="search-header">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="搜索股票代码或名称（如：茅台 600519）" oninput="handleSearch()">
+            </div>
+        </div>
+
+        <div class="dropdown-filters">
+            <div class="dropdown-wrapper">
+                <div class="dropdown-trigger" onclick="toggleDropdown(event, this)">
+                    <span id="text-strategy">资金期限：不限</span>
+                </div>
+                <div class="select-arrow"></div>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item selected" onclick="selectOption(this, 'strategy', '', '资金期限：不限', 'text-strategy')">资金期限：不限</div>
+                    <div class="dropdown-item" onclick="selectOption(this, 'strategy', 'long', '资金期限：长期闲钱', 'text-strategy')">长期闲钱 (3年+)</div>
+                    <div class="dropdown-item" onclick="selectOption(this, 'strategy', 'short', '资金期限：短期波段', 'text-strategy')">短期波段 (1年内)</div>
+                </div>
+            </div>
+            
+            <div class="dropdown-wrapper">
+                <div class="dropdown-trigger" onclick="toggleDropdown(event, this)">
+                    <span id="text-risk">风险承受：不限</span>
+                </div>
+                <div class="select-arrow"></div>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item selected" onclick="selectOption(this, 'risk', '', '风险承受：不限', 'text-risk')">风险承受：不限</div>
+                    <div class="dropdown-item" onclick="selectOption(this, 'risk', 'low', '风险：稳健保守', 'text-risk')">稳健保守 (怕亏本金)</div>
+                    <div class="dropdown-item" onclick="selectOption(this, 'risk', 'high', '风险：追求高收益', 'text-risk')">追求高收益 (扛得住波动)</div>
+                </div>
+            </div>
+
+            <div class="dropdown-wrapper">
+                <div class="dropdown-trigger" onclick="toggleDropdown(event, this)">
+                    <span id="text-focus">更看重：不限</span>
+                </div>
+                <div class="select-arrow"></div>
+                <div class="dropdown-menu">
+                    <div class="dropdown-item selected" onclick="selectOption(this, 'focus', '', '更看重：不限', 'text-focus')">更看重：不限</div>
+                    <div class="dropdown-item" onclick="selectOption(this, 'focus', 'base_good', '看重：底子优秀', 'text-focus')">底子优秀 (赚钱稳)</div>
+                    <div class="dropdown-item" onclick="selectOption(this, 'focus', 'val_low', '看重：估值便宜', 'text-focus')">估值便宜 (打折买)</div>
+                    <div class="dropdown-item" onclick="selectOption(this, 'focus', 'trend_up', '看重：趋势向上', 'text-focus')">趋势向上 (正在涨)</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="stock-list-container"></div>
+    </div>
+
+    <!-- 详情视图 -->
+    <div id="detail-view" class="view">
+        <div class="back-btn" onclick="switchView('home')">返回选股列表</div>
+
+        <div class="card">
+            <div class="header-top">
+                <div>
+                    <span class="title" id="stock-name">加载中...</span>
+                    <span class="sub-text" id="stock-code">--</span>
+                </div>
+                <div class="score-container">
+                    <div class="detail-score-badge" id="detail-score">--<span>分</span></div>
+                </div>
+            </div>
+
+            <div class="ticker-bar">
+                <div class="ticker-data-left">
+                    <span>现价 <span class="ticker-val" id="price">--</span></span>
+                    <span>市值 <span class="ticker-val" id="mcap">--</span></span>
+                    <span><span class="clickable-term" data-term="pe">PE(TTM)</span> <span class="ticker-val" id="pe">--</span></span>
+                </div>
+                <div class="score-anchor" id="score-anchor">计算中...</div>
+            </div>
+            
+            <div class="unified-advice-panel">
+                <div class="advice-header">
+                    <div class="advice-title">💡 操作建议</div>
+                </div>
+                
+                <div class="sentiment-alert" id="sentiment-alert">
+                    <span>加载中...</span>
+                </div>
+
+                <div class="advice-main-text" id="action-plan-text">正在生成...</div>
+                
+                <div class="advice-block">
+                    <div class="advice-subtitle">⏳ 分批买入</div>
+                    <div class="advice-content" id="time-advice-text">正在计算...</div>
+                </div>
+
+                <div class="advice-block">
+                    <div class="advice-subtitle">👤 适合人群</div>
+                    <div class="advice-content" id="suitable-for">--</div>
+                </div>
+
+                <div class="advice-block">
+                    <div class="advice-subtitle">🛡️ 跟踪防线</div>
+                    <div class="advice-content">
+                        <div class="detail-list-item"><span class="dot dot-green"></span><span id="buy-line-text">计算中...</span></div>
+                        <div class="detail-list-item"><span class="dot dot-red"></span><span id="risk-warning-text">计算中...</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="module-header">
+                <div class="title-wrap">
+                    <span class="module-title">⚖️ 盈亏空间测算</span>
+                    <span class="conclusion-inline" id="odds-summary-text">计算中...</span>
+                </div>
+            </div>
+            
+            <div class="price-limits">
+                <span class="price-limit-down" id="label-down">极低支撑: --元</span>
+                <span class="price-limit-up" id="label-up">合理目标: --元</span>
+            </div>
+
+            <div class="odds-blocks">
+                <div class="odds-block odds-down">
+                    <div class="odds-label">如果跌到底，最多亏</div>
+                    <div class="odds-val-big" id="downside-val">-15%</div>
+                </div>
+                <div class="odds-block odds-up">
+                    <div class="odds-label">如果涨到顶，能赚</div>
+                    <div class="odds-val-big" id="upside-val">+35%</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="module-header">
+                <div class="title-wrap">
+                    <span class="module-title">公司底子</span>
+                    <span class="conclusion-inline" id="conclusion-base">能稳定赚钱，赚到的都是实打实的现金</span>
+                </div>
+                <span class="module-score" id="score-base">95/100</span>
+            </div>
+            <div class="progress-bg"><div class="progress-fill" id="bar-base" style="width: 95%; background-color: var(--color-green);"></div></div>
+            
+            <div class="three-cols">
+                <div class="mini-card">
+                    <div class="mini-label"><span class="clickable-term" data-term="roe">ROE</span></div>
+                    <div class="mini-val">34.2%</div>
+                    <div class="mini-desc">连续多年＞30%<br>股东投100赚34.2</div>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-label"><span class="clickable-term" data-term="cashflow">经营现金流</span></div>
+                    <div class="mini-val">665亿</div>
+                    <div class="mini-desc">赚进来的大多是现金<br>不是欠条</div>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-label"><span class="clickable-term" data-term="debt">有息负债率</span></div>
+                    <div class="mini-val">≈ 0%</div>
+                    <div class="mini-desc">账上现金超千亿<br>根本不差钱，无压力</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="module-header">
+                <div class="title-wrap">
+                    <span class="module-title">估值水平</span>
+                    <span class="conclusion-inline" id="conclusion-val">处于历史极低位置，性价比凸显</span>
+                </div>
+                <span class="module-score" id="score-val">60/100</span>
+            </div>
+            <div class="progress-bg"><div class="progress-fill" id="bar-val" style="width: 60%; background-color: var(--color-orange);"></div></div>
+            
+            <div class="three-cols">
+                <div class="mini-card">
+                    <div class="mini-label"><span class="clickable-term" data-term="pe_percentile">PE历史分位</span></div>
+                    <div class="mini-val" id="pe-percentile-val">35%</div>
+                    <div class="mini-desc">比过去35%的时间贵<br>（处于历史低位）</div>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-label"><span class="clickable-term" data-term="pe">当前PE</span></div>
+                    <div class="mini-val" id="pe-card">--</div>
+                    <div class="mini-desc">处于消费行业<br>合理偏高区间</div>
+                </div>
+                <div class="mini-card">
+                    <div class="mini-label"><span class="clickable-term" data-term="dividend">股息回报</span></div>
+                    <div class="mini-val">2.5%</div>
+                    <div class="mini-desc">分红比往年大方<br>收益高于往年平均</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="module-header">
+                <div class="title-wrap">
+                    <span class="module-title">近期趋势</span>
+                    <span class="conclusion-inline" id="trend-conclusion">近期在低位横盘，短期走势偏弱</span>
+                </div>
+                <span class="module-score" id="score-trend">50/100</span>
+            </div>
+            <div class="progress-bg"><div class="progress-fill" id="bar-trend" style="width: 50%; background-color: var(--color-blue);"></div></div>
+            
+            <div class="trend-tags">
+                <span class="trend-tag tag-green-bg" id="tag-ma">均线多头排列，长期向好</span>
+            </div>
+
+            <div class="chart-header">
+                <div class="chart-title-area">
+                    <span class="chart-sub-title">股价走势</span>
+                    <div class="chart-legend">
+                        <span><span class="legend-line"></span>本股</span>
+                        <span><span class="legend-dash"></span>沪深300</span>
+                    </div>
+                </div>
+                <div class="time-filters">
+                    <div class="time-btn active" onclick="switchTime(this, '1m')">近1月</div>
+                    <div class="time-btn" onclick="switchTime(this, '6m')">近半年</div>
+                    <div class="time-btn" onclick="switchTime(this, '1y')">近1年</div>
+                </div>
+            </div>
+            
+            <div id="trendChart"></div>
+            
+            <div class="chart-translation" id="chart-translation-text">
+                正在生成走势翻译...
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="module-header">
+                <div class="title-wrap"><span class="module-title">近期公司动态</span></div>
+            </div>
+            <div class="news-list" id="news-list-container"></div>
+        </div>
+
+        <div class="disclaimer">
+            数据仅为客观统计展示，不构成投资建议；<br>历史数据不代表未来表现，股市有风险，投资需谨慎。<br>
+            *注：新闻解读由AI生成，仅供参考。
+        </div>
+    </div>
+</div>
+
+<div class="popover-overlay" id="overlay"></div>
+<div class="popover-content" id="popover">
+    <div class="popover-arrow" id="popover-arrow"></div>
+    <div class="popover-title" id="popover-title"></div>
+    <div id="popover-body"></div>
+</div>
+
+<script>
+    const stockDB = [
+        { 
+            code: 'sh600519', rawCode: '600519', name: '贵州茅台', 
+            base: 'good', valuation: 'low', trend: 'down', strategy: 'long', risk: 'low', 
+            baseScore: 95, valScore: 60, trendScore: 50, pePercentile: '35%', trendText: '低位横盘',
+            sentiment: '冷门无人问津', downsideRatio: 0.85, upsideRatio: 1.35   
+        },
+        { 
+            code: 'sz300750', rawCode: '300750', name: '宁德时代', 
+            base: 'good', valuation: 'mid', trend: 'up', strategy: 'short', risk: 'high', 
+            baseScore: 88, valScore: 55, trendScore: 75, pePercentile: '70%', trendText: '震荡向上',
+            sentiment: '人声鼎沸', downsideRatio: 0.80, upsideRatio: 1.20   
+        },
+        { 
+            code: 'sz002594', rawCode: '002594', name: '比亚迪', 
+            base: 'good', valuation: 'high', trend: 'up', strategy: 'short', risk: 'high', 
+            baseScore: 85, valScore: 30, trendScore: 80, pePercentile: '85%', trendText: '强势上涨',
+            sentiment: '极度拥挤', downsideRatio: 0.70, upsideRatio: 1.10   
+        }
+    ];
+
+    const newsDB = {
+        'sh600519': [{ title: "贵州茅台发布三季报：营收同比增长15.6%", time: "2026-10-25", type: "good", text: "营收依然稳健，符合预期。高端白酒需求坚挺，长线逻辑未破。" }],
+        'default': [{ title: "公司近期经营状况平稳，无重大未披露事项", time: "2026-11-06", type: "mid", text: "基本面无明显变化，股价波动主要受大盘情绪影响。" }]
+    };
+
+    let filters = { keyword: '', strategy: '', risk: '', focus: '' };
+    let currentStockData = stockDB[0];
+    let chartInstance = null;
+
+    function toggleDropdown(e, trigger) {
+        e.stopPropagation();
+        const wrapper = trigger.closest('.dropdown-wrapper');
+        const menu = wrapper.querySelector('.dropdown-menu');
+        const isShowing = menu.classList.contains('show');
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+        document.querySelectorAll('.dropdown-trigger').forEach(t => t.classList.remove('active'));
+        if (!isShowing) { menu.classList.add('show'); trigger.classList.add('active'); }
+    }
+
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+        document.querySelectorAll('.dropdown-trigger').forEach(t => t.classList.remove('active'));
+    });
+
+    function selectOption(item, type, value, text, textId) {
+        document.getElementById(textId).innerText = text;
+        const wrapper = item.closest('.dropdown-wrapper');
+        const trigger = wrapper.querySelector('.dropdown-trigger');
+        if(value === '') { trigger.classList.remove('active'); } else { trigger.classList.add('active'); }
+        item.parentNode.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+        filters[type] = value;
+        filterData();
+        document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.remove('show'));
+        document.querySelectorAll('.dropdown-trigger').forEach(t => t.classList.remove('active'));
+    }
+
+    function calculateTotalScore(stock) {
+        let riskScore = stock.risk === 'low' ? 100 : 0;
+        return Math.round((stock.baseScore * 0.4) + (stock.valScore * 0.3) + (stock.trendScore * 0.2) + (riskScore * 0.1));
+    }
+
+    function getScoreColor(score) {
+        if (score >= 80) return 'var(--color-green)';
+        if (score >= 60) return 'var(--color-orange)';
+        return 'var(--text-weak)';
+    }
+
+    function getScoreAnchor(score) {
+        if (score >= 85) return "击败全市场 95% 的股票";
+        if (score >= 80) return "击败全市场 82% 的股票";
+        if (score >= 70) return "击败全市场 65% 的股票";
+        if (score >= 60) return "击败全市场 45% 的股票";
+        return "全市场排名靠后";
+    }
+
+    function renderList(data) {
+        const container = document.getElementById('stock-list-container');
+        if(data.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding: 40px 0; color: var(--text-sub);">没有找到符合您条件的股票，请放宽筛选条件。</div>';
+            return;
+        }
+        container.innerHTML = data.map(stock => {
+            const totalScore = calculateTotalScore(stock);
+            const scoreColor = getScoreColor(totalScore);
+            
+            let tagStrategy = stock.strategy === 'long' ? '<span class="s-tag good">长期闲钱</span>' : '<span class="s-tag warn">短期波段</span>';
+            let tagRisk = stock.risk === 'low' ? '<span class="s-tag good">稳健保守</span>' : '<span class="s-tag warn">追求弹性</span>';
+            let tagVal = '';
+            if (stock.valuation === 'low') tagVal = '<span class="s-tag good">估值便宜</span>';
+            else if (stock.valuation === 'high') tagVal = '<span class="s-tag bad">估值偏贵</span>';
+            else tagVal = '<span class="s-tag neutral">估值合理</span>';
+
+            return `
+            <div class="stock-item" onclick="openDetail('${stock.code}')">
+                <div class="stock-item-top">
+                    <div class="stock-name-row">
+                        <span class="stock-name">${stock.name}</span>
+                        <span class="stock-code">${stock.rawCode}</span>
+                    </div>
+                    <div class="score-badge" style="color: ${scoreColor};">${totalScore}<span>分</span></div>
+                </div>
+                <div class="stock-item-data">
+                    <div class="data-pill">PE分位 <b>${stock.pePercentile}</b></div>
+                    <div style="width:1px; height:10px; background:#EFECE6;"></div>
+                    <div class="data-pill">情绪 <b>${stock.sentiment}</b></div>
+                </div>
+                <div class="stock-tags">
+                    ${tagStrategy} ${tagRisk} ${tagVal}
+                </div>
+            </div>
+            `;
+        }).join('');
+    }
+
+    function handleSearch() {
+        filters.keyword = document.getElementById('search-input').value.trim().toLowerCase();
+        filterData();
+    }
+
+    function filterData() {
+        let filtered = stockDB.filter(stock => {
+            const matchSearch = stock.name.includes(filters.keyword) || stock.rawCode.includes(filters.keyword);
+            if (!matchSearch) return false;
+            if (filters.strategy && stock.strategy !== filters.strategy) return false;
+            if (filters.risk && stock.risk !== filters.risk) return false;
+            if (filters.focus) {
+                if (filters.focus === 'base_good' && stock.base !== 'good') return false;
+                if (filters.focus === 'val_low' && stock.valuation !== 'low') return false;
+                if (filters.focus === 'trend_up' && stock.trend !== 'up') return false;
+            }
+            return true;
+        });
+        renderList(filtered);
+    }
+
+    renderList(stockDB);
+
+    function switchView(viewName) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(viewName + '-view').classList.add('active');
+        window.scrollTo(0, 0);
+    }
+
+    function openDetail(code) {
+        currentStockData = stockDB.find(s => s.code === code);
+        if (!currentStockData) return;
+
+        switchView('detail');
+        
+        const totalScore = calculateTotalScore(currentStockData);
+        const scoreBadge = document.getElementById('detail-score');
+        scoreBadge.innerHTML = `${totalScore}<span>分</span>`;
+        scoreBadge.style.backgroundColor = getScoreColor(totalScore);
+        document.getElementById('score-anchor').innerText = getScoreAnchor(totalScore);
+
+        document.getElementById('stock-name').innerText = currentStockData.name;
+        document.getElementById('stock-code').innerText = currentStockData.rawCode + " · 核心资产";
+        
+        // 💡 大白话优化：情绪、建议、策略
+        let sentimentText = "";
+        let sentimentIcon = "";
+        if (currentStockData.sentiment.includes('冷门')) {
+            sentimentIcon = "❄️";
+            sentimentText = "当前热度：冷门。大家都在追别的股票，关注这只票的人很少，你可以慢慢挑。";
+        } else if (currentStockData.sentiment.includes('拥挤') || currentStockData.sentiment.includes('人声鼎沸')) {
+            sentimentIcon = "🔥";
+            sentimentText = "当前热度：拥挤。大量资金涌入，交投火爆，需警惕过热。";
+        } else {
+            sentimentIcon = "☁️";
+            sentimentText = `当前热度：${currentStockData.sentiment}。资金情绪平稳。`;
+        }
+        document.getElementById('sentiment-alert').innerHTML = `<span>${sentimentIcon}</span> <span>${sentimentText}</span>`;
+
+        let advice = "";
+        let timeAdvice = "";
+        
+        if (currentStockData.valuation === 'low' && currentStockData.trend === 'down') {
+            advice = "价格很便宜了，但依然还在跌。别急着一次性把准备买它的钱都花光。";
+            timeAdvice = "建议把钱分成 3-5 份，每次跌了才买一点，慢慢攒。";
+        } else if (currentStockData.valuation === 'high') {
+            advice = "虽然公司很好，但当前价格已经被炒得很高了，现在买很容易买在高位，不划算。";
+            timeAdvice = "等大盘整体大跌，或者它被错杀降价的时候再买。现在千万不要因为眼红去买。";
+        } else {
+            advice = "当前价格买不亏，但短期暴涨的可能性不大。适合求稳的人拿着。";
+            timeAdvice = "每个月固定拿一笔闲钱买一点，不用管每天涨跌，赚公司长期慢慢发展的钱。";
+        }
+        document.getElementById('action-plan-text').innerText = advice;
+        document.getElementById('time-advice-text').innerText = timeAdvice;
+
+        // 💡 大白话优化：适合谁、防线
+        document.getElementById('suitable-for').innerText = currentStockData.strategy === 'long' ? '不喜欢每天盯盘、想每年拿点现金分红、能拿得住 2-3 年的人。' : '想赚快钱、能接受股票一天涨跌 5% 甚至 10% 的胆子大的人。';
+        document.getElementById('conclusion-base').innerText = currentStockData.base === 'good' ? '能稳定赚钱，赚到的都是实打实的现金' : '生意模式尚可，但需警惕周期性风险';
+        document.getElementById('conclusion-val').innerText = currentStockData.valuation === 'low' ? '处于历史极低位置，性价比高' : '估值适中，不算便宜但也不贵';
+        document.getElementById('risk-warning-text').innerText = "如果公司财报公布，发现赚的钱比去年少了，这就比较危险，要赶紧重新评估。";
+        
+        const newsList = newsDB[currentStockData.code] || newsDB['default'];
+        document.getElementById('news-list-container').innerHTML = newsList.map(news => {
+            let tagClass = 'ai-tag-mid', tagText = '中性';
+            if(news.type === 'good') { tagClass = 'ai-tag-good'; tagText = '利好'; }
+            if(news.type === 'bad') { tagClass = 'ai-tag-bad'; tagText = '利空'; }
+            return `
+                <div class="news-item">
+                    <div class="news-title">${news.title}</div>
+                    <div class="news-meta">${news.time} · 智能解读</div>
+                    <div class="news-ai-box">
+                        <span class="ai-tag ${tagClass}">${tagText}</span>
+                        <span class="news-ai-text">${news.text}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        document.getElementById('score-base').innerText = currentStockData.baseScore + '/100';
+        document.getElementById('bar-base').style.width = currentStockData.baseScore + '%';
+        document.getElementById('score-val').innerText = currentStockData.valScore + '/100';
+        document.getElementById('bar-val').style.width = currentStockData.valScore + '%';
+        document.getElementById('score-trend').innerText = currentStockData.trendScore + '/100';
+        document.getElementById('bar-trend').style.width = currentStockData.trendScore + '%';
+
+        document.querySelectorAll('.time-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector('.time-btn').classList.add('active');
+        
+        fetchRealData(currentStockData.code);
+    }
+
+    function fetchRealData(stockCode) {
+        document.getElementById('price').innerText = '--';
+        document.getElementById('pe').innerText = '--';
+        document.getElementById('pe-card').innerText = '--';
+        document.getElementById('mcap').innerText = '--';
+
+        var script = document.createElement('script');
+        script.src = `https://qt.gtimg.cn/q=${stockCode}`;
+        
+        script.onload = function() {
+            var dataStr = window['v_' + stockCode];
+            if (dataStr) {
+                var d = dataStr.split('~');
+                var price = parseFloat(d[3]).toFixed(2);
+                var pe = parseFloat(d[39]).toFixed(1);
+                var mcap = parseFloat(d[45]).toFixed(0) + "亿"; 
+                var timeStr = d[30].substring(0, 8).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+
+                document.getElementById('price').innerText = price + "元";
+                document.getElementById('pe').innerText = pe;
+                document.getElementById('pe-card').innerText = pe;
+                document.getElementById('mcap').innerText = mcap;
+
+                let targetPe = 20;
+                let targetPrice = price;
+                if (pe > 0) {
+                    targetPrice = (price * (targetPe / pe)).toFixed(0);
+                }
+                document.getElementById('buy-line-text').innerHTML = `若价格低于 <b style="color:var(--color-green); font-size:14px;">${targetPrice} 元</b>（即跌破 20 倍 PE），进入极佳性价比区间。`;
+
+                // 盈亏比计算
+                let downsidePrice = (parseFloat(price) * currentStockData.downsideRatio).toFixed(0);
+                let upsidePrice = (parseFloat(price) * currentStockData.upsideRatio).toFixed(0);
+                let downsidePct = ((currentStockData.downsideRatio - 1) * 100).toFixed(0);
+                let upsidePct = ((currentStockData.upsideRatio - 1) * 100).toFixed(0);
+                let ratio = (upsidePct / Math.abs(downsidePct)).toFixed(1);
+                
+                document.getElementById('downside-val').innerText = `${downsidePct}%`;
+                document.getElementById('upside-val').innerText = `+${upsidePct}%`;
+                document.getElementById('label-down').innerText = `极低支撑: ${downsidePrice}元`;
+                document.getElementById('label-up').innerText = `合理目标: ${upsidePrice}元`;
+                
+                let summaryText = "";
+                if(ratio >= 2) {
+                     summaryText = `盈亏比 ${ratio} 倍，上涨空间远大于下跌空间，赔率较好。`;
+                } else {
+                     summaryText = `盈亏比 ${ratio} 倍，上涨空间有限，建议继续观望。`;
+                }
+                document.getElementById('odds-summary-text').innerText = summaryText;
+
+                updateChart('1m', parseFloat(price));
+            }
+        };
+        document.body.appendChild(script);
+    }
+
+    function updateChart(timeRange, realPrice) {
+        setTimeout(() => {
+            let chartDom = document.getElementById('trendChart');
+            if (!chartInstance) chartInstance = echarts.init(chartDom);
+            chartInstance.resize();
+
+            let basePrice = realPrice || parseFloat(document.getElementById('price').innerText) || 100;
+            let dates = [], mockTrend = [], mockIndex = [], conclusionText = "", translation = "", isBull = false, minRatio = 0.8;
+            
+            let today = new Date();
+            function getDateStr(daysAgo) {
+                let d = new Date(today);
+                d.setDate(d.getDate() - daysAgo);
+                return `${d.getMonth()+1}月${d.getDate()}日`;
+            }
+
+            // 💡 大白话优化：图表翻译
+            if (timeRange === '1m') {
+                dates = [getDateStr(28), getDateStr(21), getDateStr(14), getDateStr(7), '今天'];
+                mockTrend = [0.98, 0.96, 0.99, 0.97]; mockIndex = [0.95, 0.93, 0.94, 0.92];
+                conclusionText = "近1个月窄幅震荡，多空博弈激烈"; 
+                translation = "最近1个月股票稍微跌了一点，但比整个市场跌得少，说明比较扛跌。而且买卖的人变少了，说明着急卖的人不多，大家都在观望，不用太害怕。"; 
+                isBull = false; minRatio = 0.9;
+            } else if (timeRange === '6m') {
+                dates = [getDateStr(150), getDateStr(120), getDateStr(90), getDateStr(60), getDateStr(30), '今天'];
+                mockTrend = [0.95, 0.91, 0.94, 0.88, 0.92, 0.98]; mockIndex = [0.92, 0.88, 0.89, 0.83, 0.85, 0.90];
+                conclusionText = "近期在低位横盘，短期走势偏弱"; 
+                translation = "最近半年一直在原地上下晃悠没怎么跌，比市场表现好。现在是休息攒劲的阶段，等经济大环境变好就有机会。"; 
+                isBull = false; minRatio = 0.8;
+            } else if (timeRange === '1y') {
+                dates = [getDateStr(330), getDateStr(270), getDateStr(210), getDateStr(150), getDateStr(90), getDateStr(30), '今天'];
+                mockTrend = [0.75, 0.82, 0.88, 0.92, 0.89, 0.95, 1.0]; mockIndex = [0.72, 0.75, 0.78, 0.80, 0.79, 0.82, 0.85];
+                conclusionText = "近1年呈现震荡上行，长期趋势仍在"; 
+                translation = "过去一年整体在慢慢往上涨，长线看是向好的。说明有聪明钱在慢慢买入，表现比市场平均好。"; 
+                isBull = true; minRatio = 0.6;
+            }
+            
+            document.getElementById('trend-conclusion').innerText = conclusionText;
+            document.getElementById('chart-translation-text').innerText = translation;
+
+            const tagMa = document.getElementById('tag-ma');
+            if(isBull) { tagMa.innerText = "长期趋势向好，属于稳步上涨"; tagMa.className = "trend-tag tag-green-bg"; }
+            else { tagMa.innerText = "短期价格偏弱，还在探底"; tagMa.className = "trend-tag tag-orange-bg"; }
+            
+            const values = mockTrend.map(ratio => (basePrice * ratio).toFixed(2));
+            values.push(basePrice);
+            const indexValues = mockIndex.map(ratio => (basePrice * ratio).toFixed(2));
+            indexValues.push(basePrice * 0.88);
+
+            var option = {
+                grid: { left: 0, right: 0, top: 25, bottom: 20 },
+                xAxis: { type: 'category', data: dates, boundaryGap: false, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { color: '#8A8581', fontSize: 10, margin: 12, interval: 0 } },
+                yAxis: { type: 'value', show: false, min: basePrice * minRatio, max: basePrice * 1.1 },
+                series: [
+                    { name: '沪深300', data: indexValues, type: 'line', smooth: true, symbol: 'none', lineStyle: { color: '#A6A29D', type: 'dashed', width: 1.5 }, z: 1 },
+                    {
+                        name: '本股', data: values, type: 'line', smooth: true, symbol: 'circle', symbolSize: 6,
+                        itemStyle: { color: 'var(--color-blue)' }, lineStyle: { color: 'var(--color-blue)', width: 2.5 },
+                        areaStyle: { color: 'rgba(123, 143, 157, 0.1)' },
+                        z: 2,
+                        markLine: { symbol: 'none', data: [{ yAxis: basePrice * 1.05, lineStyle: { color: 'var(--color-orange)', type: 'dashed', width: 1.5 }, label: { formatter: '近期高点', position: 'insideEndTop', color: 'var(--color-orange)', fontSize: 11, fontWeight: 'bold', padding: [0, 0, 2, 0] } }] },
+                        markArea: { silent: true, itemStyle: { color: isBull ? 'rgba(107, 130, 119, 0.05)' : 'rgba(184, 154, 125, 0.05)' }, data: [[{ yAxis: basePrice * minRatio }, { yAxis: basePrice * 1.1 }]] }
+                    }
+                ]
+            };
+            chartInstance.setOption(option, true);
+        }, 50); 
+    }
+
+    function switchTime(el, range) {
+        const siblings = el.parentNode.children;
+        for(let i=0; i<siblings.length; i++) { siblings[i].classList.remove('active'); }
+        el.classList.add('active');
+        updateChart(range);
+    }
+
+    const dictionary = {
+        'roe': { title: 'ROE (净资产收益率)', desc: '衡量公司用股东的钱赚钱的能力。数值越高，说明公司越能赚钱。', case: '【生活案例】你花 100 万开了一家店，一年下来纯赚了 20 万，那么这家店的 ROE 就是 20%。长期大于 15% 通常就是很优秀的生意了。' },
+        'cashflow': { title: '经营现金流', desc: '公司做买卖实际收到的“真金白银”（现金）。如果这个数字长期大于净利润，说明赚的是真钱。', case: '【生活案例】你卖出了 100 万的货，但客户只给了你 20 万现金，剩下 80 万打了欠条。这就很危险。如果现金流比净利润还多，说明客户全是拿现金来买你的货，非常健康。' },
+        'debt': { title: '有息负债率', desc: '公司欠的钱里面，需要付利息的比例。比如银行贷款。比例越低，说明还债压力越小。', case: '【生活案例】你买房欠了 100 万房贷（要付利息），信用卡刷了 2 万（免息期内不用付利息）。有息负债率主要衡量你房贷那部分。' },
+        'pe': { title: 'PE (市盈率)', desc: '你愿意为公司每年的利润，付出多少倍的价钱。数值越高，回本也越慢。', case: '【生活案例】你买下一家奶茶店花了 50 万，每年纯赚 5 万。PE 就是 10 倍（50 ÷ 5）。意味着你要 10 年才能回本。' },
+        'pe_percentile': { title: 'PE 历史分位', desc: '用现在的估值，和它过去 10 年的历史去比。分位越低，说明现在买入相对越便宜。', case: '【生活案例】如果今天气温 30 度，在过去 10 年里有 80% 的日子比今天冷，那今天就是 80% 分位。分位越低越便宜。' },
+        'dividend': { title: '股息回报 (股息率)', desc: '光靠公司每年的现金分红，能给你带来多少比例的回报。', case: '【生活案例】你花 100 万买了一套房子出租，每年收租金 3 万。租金收益率就是 3%。' },
+        'ma': { title: '年线', desc: '过去 250 个交易日的平均股价。常被看作是股票长期趋势的“生命线”。', case: '【生活案例】就像一根有弹性的橡皮筋，股价像小球。在年线上方，说明长期趋势向好。' }
+    };
+
+    const popover = document.getElementById('popover');
+    const overlay = document.getElementById('overlay');
+    const arrow = document.getElementById('popover-arrow');
+
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('.clickable-term');
+        if (target) { showPopover(target, target.getAttribute('data-term')); }
+        else { closePopover(); }
+    });
+
+    popover.addEventListener('click', function(e) { e.stopPropagation(); });
+
+    function showPopover(el, termKey) {
+        const data = dictionary[termKey];
+        if(!data) return;
+
+        document.getElementById('popover-title').innerText = data.title;
+        document.getElementById('popover-body').innerHTML = `<p>${data.desc}</p><div class="case-text">${data.case}</div>`;
+        popover.style.display = 'block';
+        void popover.offsetWidth; 
+        popover.classList.add('show');
+        overlay.style.display = 'block';
+
+        const targetRect = el.getBoundingClientRect();
+        const popoverWidth = popover.offsetWidth;
+        const popoverHeight = popover.offsetHeight;
+        let leftPos = targetRect.left + (targetRect.width / 2) - (popoverWidth / 2);
+        const margin = 10;
+        if (leftPos < margin) leftPos = margin;
+        else if (leftPos + popoverWidth > window.innerWidth - margin) leftPos = window.innerWidth - popoverWidth - margin;
+        popover.style.left = `${leftPos}px`;
+
+        let topPos = targetRect.bottom + 8;
+        let isTop = false;
+        if (topPos + popoverHeight > window.innerHeight - margin) {
+            topPos = targetRect.top - popoverHeight - 8;
+            isTop = true;
+        }
+        popover.style.top = `${topPos}px`;
+
+        let arrowLeft = (targetRect.left + targetRect.width / 2) - leftPos - 5;
+        if (arrowLeft < 15) arrowLeft = 15;
+        if (arrowLeft > popoverWidth - 25) arrowLeft = popoverWidth - 25;
+        arrow.style.left = `${arrowLeft}px`;
+        
+        if (isTop) {
+            arrow.style.bottom = '-5px'; arrow.style.top = 'auto';
+            arrow.style.borderTop = 'none'; arrow.style.borderLeft = 'none';
+            arrow.style.borderRight = '1px solid #EFECE6'; arrow.style.borderBottom = '1px solid #EFECE6';
+        } else {
+            arrow.style.top = '-5px'; arrow.style.bottom = 'auto';
+            arrow.style.borderBottom = 'none'; arrow.style.borderRight = 'none';
+            arrow.style.borderTop = '1px solid #EFECE6'; arrow.style.borderLeft = '1px solid #EFECE6';
+        }
+    }
+
+    function closePopover() {
+        if (popover.style.display === 'none') return;
+        popover.classList.remove('show');
+        overlay.style.display = 'none';
+        setTimeout(() => { popover.style.display = 'none'; }, 150);
+    }
+
+    window.addEventListener('resize', function() { 
+        if(chartInstance) chartInstance.resize(); 
+    });
+</script>
+
+</body>
+</html>
