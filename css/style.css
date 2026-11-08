@@ -560,6 +560,30 @@ body {
 }
 .d-score small { font-size: 12px; font-weight: 500; }
 
+/* 分数 + 最大短板 + 分数解析：合成一条，不再分开摆 */
+.d-band {
+    display: flex; align-items: center; gap: 14px;
+    margin-top: 13px; padding: 11px 15px; border-radius: 10px;
+}
+.d-band.good { background: var(--fill-green); }
+.d-band.warn { background: var(--fill-orange); }
+.d-band.bad { background: var(--fill-red); }
+.d-band.mid { background: var(--fill-grey); }
+.d-band-score {
+    color: #fff; border-radius: 10px; padding: 4px 11px;
+    font-size: 19px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 2px;
+    flex: none; line-height: 1.35;
+}
+.d-band-score small { font-size: 11.5px; font-weight: 500; }
+.d-band-main { flex: 1; min-width: 0; }
+.d-band-t { font-size: 12.5px; font-weight: 700; line-height: 1.6; }
+.d-band.good .d-band-t { color: var(--green); }
+.d-band.warn .d-band-t { color: var(--orange); }
+.d-band.bad .d-band-t { color: var(--red); }
+.d-band.mid .d-band-t { color: var(--text-sub); }
+.d-band-w { font-weight: 400; color: var(--text-sub); margin-left: 9px; }
+.d-band-note { font-size: 11px; color: var(--text-weak); line-height: 1.65; margin-top: 3px; }
+
 .d-score-wrap { display: flex; flex-direction: row; align-items: center; gap: 9px; flex: none; }
 .d-score-row { display: flex; align-items: center; gap: 9px; }
 .d-rank {

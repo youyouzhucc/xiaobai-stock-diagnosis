@@ -1229,7 +1229,7 @@ function scoreLine(d) {
   if (d.val !== null) p.push(`估值 ${d.val}`);
   if (d.trend !== null) p.push(`趋势 ${d.trend}`);
   if (d.risk !== null) p.push(`风险 ${d.risk}`);
-  return `${d.total} 分是这几项的加权结果：${p.join(' · ')}。分数只说明体检项有没有硬伤（像体检报告），不代表会涨，更不是买入信号。`;
+  return `这几项的加权结果：${p.join(' · ')}。分数只说明体检项有没有硬伤（像体检报告），不代表会涨，更不是买入信号。`;
 }
 
 /* 最大的那个短板：不管总分多少，先把最扎人的一条摆到最上面 */
@@ -1611,16 +1611,15 @@ function renderDetail(it) {
         <div class="d-title">${esc(q.name)}</div>
         <div class="d-sub">${q.code} · ${esc(q.industry)}${UI.badge(q.code)}</div>
       </div>
-      <div class="d-score-wrap">
-        <button class="q-btn" type="button" data-know="score" aria-label="分数怎么读">?</button>
-        <div class="d-score" style="background:${scoreColor(d.total)}">${d.total === null ? '—' : d.total}<small>分</small></div>
-      </div>
     </div>
 
-    ${w ? `<div class="weak ${w.cls}">
-      <span class="weak-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}</span>
-      <span class="weak-w">${w.why}</span>
-    </div>` : ''}
+    <div class="d-band ${w ? w.cls : hp.cls}">
+      <div class="d-band-score" style="background:${(w ? w.cls : hp.cls) === 'bad' ? 'var(--red)' : (w ? w.cls : hp.cls) === 'warn' ? 'var(--orange)' : (w ? w.cls : hp.cls) === 'good' ? 'var(--green)' : '#A9A39A'}">${d.total === null ? '—' : d.total}<small>分</small></div>
+      <div class="d-band-main">
+        ${w ? `<div class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span></div>` : ''}
+        <div class="d-band-note">${scoreLine(d)}</div>
+      </div>
+    </div>
 
     <div class="d-pricebar">
       <span>现价 <span class="big">${f2(q.price)}</span></span>
