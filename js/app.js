@@ -1,4 +1,4 @@
-/* 小白财报速查 · 页面逻辑 */
+﻿/* 小白财报速查 · 页面逻辑 */
 
 const POOL = [
   { secid: '1.600519', name: '贵州茅台', py: 'gzmt' },
@@ -429,6 +429,8 @@ async function init() {
     e.preventDefault();
     openKnow(b.dataset.know);
   });
+
+  /* 详情页「怎么算的」：点问号原地展开，再点收起 */
 
   loadMarket();
   loadBoards();   // 榜单跟大盘并行拉，谁先回来谁先显示
@@ -1630,7 +1632,7 @@ function renderDetail(it) {
   const nums = dims.filter(x => typeof x[1] === 'number');
   const minV = nums.length ? Math.min.apply(null, nums.map(x => x[1])) : null;
   const barsHTML = `<div class="bars">
-    <div class="bars-head"><b>体检分项</b><span>${enough ? '四项加权 ' + d.total + ' 分' : '数据不足，不出总分'}</span></div>
+    <div class="bars-head"><b>体检分项</b><span>${enough ? d.total + ' 分' : '数据不足，不出总分'}</span></div>
     <div class="bars-grid">${dims.map(([n, v, o]) => `<div class="bars-row">
       <span class="bars-name">${n}</span>
       <div class="bars-track"><i class="${(typeof v === 'number' && nums.length > 1 && v === minV) ? 'weak' : ''}" style="width:${typeof v === 'number' ? Math.max(0, Math.min(100, v)) : 0}%"></i></div>
@@ -1693,14 +1695,17 @@ function renderDetail(it) {
 
     <div class="d-band ${bandCls}">
       <div class="d-band-main">
-        ${w ? `<div class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span></div>` : ''}
-        <div class="d-band-note">${enough ? scoreLine(d) : '行情或财报缺的项太多，能用的不到三项，就不硬凑一个总分了——数据不够时给分，比不给更容易误导。'}</div>
+        ${w ? `<details class="d-exp">
+          <summary class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span><span class="d-q">?</span></summary>
+          <div class="d-exbody">${enough ? scoreLine(d) : '行情或财报缺的项太多，能用的不到三项，就不硬凑一个总分了。'}</div>
+        </details>` : ''}
       </div>
     </div>
 
     ${gateHTML(q.code)}
   </div>
 
+  <div class="grid2">
   <div class="card">
     ${UI.title('公司底子', baseConcl(d))}
     ${fin ? UI.kvGrid([roeItem, debtItem, cashItem]) + moreBox('展开看：' + (d.financial ? '每股收益' : '毛利率'), baseExtra)
@@ -1789,6 +1794,7 @@ function renderDetail(it) {
     ${UI.title('最新财报', fin ? esc(fin.report) : '暂无')}
     <div class="report-list">${reportRows}</div>
     <div class="st-note">数据来自上市公司定期报告，按最近已披露的报告期展示。</div>
+  </div>
   </div>
 
   <div class="disclaimer">

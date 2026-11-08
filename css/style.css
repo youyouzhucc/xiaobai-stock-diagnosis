@@ -904,7 +904,7 @@ body {
 }
 
 /* 体检分项：也归到同一条左轴，一列四行 */
-#detail-view .bars-grid { grid-template-columns: 1fr; gap: 0; }
+#detail-view .bars-grid { grid-template-columns: 1fr 1fr; gap: 0 40px; }
 #detail-view .bars-name { width: 132px; font-size: 12.5px; }
 #detail-view .bars-track { max-width: 300px; }
 #detail-view .bars-val { width: 34px; font-size: 13px; }
@@ -1037,3 +1037,56 @@ body {
 
 /* 财报数值与指标数值同字号，同一条值轴 */
 #detail-view .report-row b { font-size: 21px; letter-spacing: -.4px; }
+
+/* ---------- v43 两列模块卡 ---------- */
+#detail-view .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 14px;
+    align-items: start;
+    margin-top: 14px;
+}
+#detail-view .grid2 > .card { margin: 0; }
+@media (max-width: 900px) { #detail-view .grid2 { grid-template-columns: 1fr; } }
+
+/* 卡变窄了，三列网格跟着收 */
+#detail-view .kv, #detail-view .report-row {
+    grid-template-columns: 96px 122px minmax(0, 1fr);
+    gap: 0 16px;
+}
+#detail-view .report-row b { font-size: 19px; }
+
+/* 体检分项：分数紧跟标题，不甩到右上角 */
+#detail-view .bars-head { justify-content: flex-start; gap: 8px; }
+#detail-view .bars-head b { font-size: 13px; font-weight: 600; color: var(--text); }
+#detail-view .bars-head span { font-size: 13px; font-weight: 600; color: var(--text); }
+#detail-view .bars-name { width: 96px; }
+#detail-view .bars-track { max-width: 210px; }
+#detail-view .bars-val { width: 30px; }
+#detail-view .bars-word { width: 44px; }
+
+/* 图表在小卡里矮一点 */
+#detail-view #trendChart { height: 168px; }
+#detail-view .chart-empty { height: 168px; }
+
+/* 「怎么算的」：结论行末一个问号，点开原地展开 */
+.d-q {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; margin-left: 8px;
+    border-radius: 50%; border: 1px solid rgba(0, 0, 0, .14);
+    font-size: 11px; line-height: 1; color: var(--text-sub);
+    cursor: pointer; vertical-align: 1px; user-select: none;
+}
+.d-q.open { background: var(--text); color: #fff; border-color: var(--text); }
+.d-exbody {
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px solid rgba(0, 0, 0, .07);
+    font-size: 12px; line-height: 1.75; color: var(--text-sub);
+}
+
+/* 结论行本身就是展开开关：点一下出公式，再点收起 */
+.d-exp > summary { list-style: none; cursor: pointer; }
+.d-exp > summary::-webkit-details-marker { display: none; }
+.d-exp > summary::marker { content: ''; }
+.d-exp[open] .d-q { background: var(--text); color: #fff; border-color: var(--text); }
+.d-exbody { display: block; }
