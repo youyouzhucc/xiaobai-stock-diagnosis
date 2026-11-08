@@ -1224,12 +1224,18 @@ function healthOf(total) {
 
 function scoreLine(d) {
   if (!d || d.total === null) return '行情或财报还没拉全，综合分先空着——没有数据就不编分数。';
-  const p = [];
-  if (d.base !== null) p.push(`底子 ${d.base}`);
-  if (d.val !== null) p.push(`估值 ${d.val}`);
-  if (d.trend !== null) p.push(`趋势 ${d.trend}`);
-  if (d.risk !== null) p.push(`风险 ${d.risk}`);
-  return `这几项的加权结果：${p.join(' · ')}。分数只说明体检项有没有硬伤（像体检报告），不代表会涨，更不是买入信号。`;
+  const dims = [
+    ['底子', d.base, 40],
+    ['估值', d.val, 30],
+    ['趋势', d.trend, 20],
+    ['风险', d.risk, 10]
+  ].filter(x => x[1] !== null);
+  const wsum = dims.reduce((a, b) => a + b[2], 0);
+  /* 某几项数据缺失时权重会重新分配，所以百分比按剩下的项换算，不假装缺项是 0 分 */
+  const expr = dims.map(([n, v, w]) => `${n} ${v}×${Math.round(w * 100 / wsum)}%`).join(' + ');
+  return `怎么算出来的：${expr} ≈ ${d.total} 分。`
+    + `底子看赚钱够不够多、财务稳不稳，估值看现在贵不贵，趋势看最近往哪走，风险看波动多大、跌得最狠有多深。`
+    + `这四项都是客观读数，分高只代表没有明显硬伤，不代表会涨。`;
 }
 
 /* 最大的那个短板：不管总分多少，先把最扎人的一条摆到最上面 */
