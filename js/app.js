@@ -1,4 +1,4 @@
-﻿/* 小白财报速查 · 页面逻辑 */
+/* 小白财报速查 · 页面逻辑 */
 
 const POOL = [
   { secid: '1.600519', name: '贵州茅台', py: 'gzmt' },
@@ -138,6 +138,9 @@ function syncVersion() {
   document.querySelectorAll('.ver').forEach(el => { el.textContent = t; });
 }
 
+/* K 线配色：沿用站内莫兰迪红绿，红涨绿跌（A 股习惯），不引入纯红纯绿 */
+const C = { up: '#AB7474', down: '#6B8277' };
+
 const state = {
   items: [],
   filters: { board: '', kw: '', type: '', cap: '', pe: '', heat: '', div: '', strategy: '', risk: '', focus: '', chg: '' },
@@ -146,7 +149,7 @@ const state = {
   bootError: null,
   current: null,
   chart: null,
-  range: '1m',
+  range: '6m',
   indexKl: null,
   order: null,
   fullRebuild: true,
@@ -740,7 +743,7 @@ function openPerm(auto) {
   const mask = document.createElement('div');
   mask.className = 'perm-mask';
   mask.innerHTML = `<div class="perm-card">
-    <div class="perm-h">设置我能买的</div>
+    <div class="perm-h"><span>设置我能买的</span><button class="know-x" type="button" aria-label="关闭" onclick="App.closePerm()">×</button></div>
     <div class="perm-d">勾上你券商里已经开通的板块。设好之后，筛选里的「只看我能买的」会把买不了的票滤掉。这些只存在你自己的浏览器里，不会上传。</div>
     <label class="perm-row"><input type="checkbox" data-k="gem"${p.gem ? ' checked' : ''}> 已开通创业板（10 万 / 2 年）</label>
     <label class="perm-row"><input type="checkbox" data-k="star"${p.star ? ' checked' : ''}> 已开通科创板（50 万 / 2 年）</label>
@@ -1128,7 +1131,7 @@ async function openDetail(secid) {
   const item = state.items.find(i => i.quote.secid === secid);
   if (!item) return;
   state.current = item;
-  state.range = '1m';
+  state.range = '6m';
   switchView('detail');
   $('detail-body').innerHTML = '<div class="card"><div class="empty">正在做体检，拉取行情、财报和历史 K 线…</div></div>';
 
@@ -1671,6 +1674,7 @@ function renderDetail(it) {
     </div>`).join('') : '<div class="report-row"><span>财报数据暂不可用</span><b>—</b><span></span></div>';
 
   const def = s ? defenseOf(it) : [];
+  const kb = (window.KL && it.kline && it.kline.length >= 30) ? KL.build(it.kline) : null;
 
   $('detail-body').innerHTML = `
   <div class="card">
@@ -1692,16 +1696,14 @@ function renderDetail(it) {
 
     ${barsHTML}
 
-    <div class="d-band ${bandCls}">
-      <div class="d-band-main">
-        ${w ? `<div class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span><button class="q-btn" type="button" data-know="score" aria-label="这个分数怎么算的">?</button></div>` : ''}
-      </div>
-    </div>
-
     ${gateHTML(q.code)}
 
     <div class="advice-h">数据解读</div>
     <div class="advice">
+      ${w ? `<div class="advice-row risk ${w.cls}">
+        <span class="advice-k">${w.cls === 'bad' ? '核心风险' : w.cls === 'good' ? '四项都过线' : '最大短板'}</span>
+        <span class="advice-v"><b>${w.title}</b>　${w.why}<button class="q-btn" type="button" data-know="score" aria-label="这个分数怎么算的">?</button></span>
+      </div>` : ''}
       <div class="advice-row"><span class="advice-k">整体判断</span><span class="advice-v">${adv.main}</span></div>
       <div class="advice-row"><span class="advice-k">分批节奏</span><span class="advice-v">${adv.batch}</span></div>
       <div class="advice-row"><span class="advice-k">适合人群</span><span class="advice-v">${adv.who}</span></div>
@@ -1710,27 +1712,26 @@ function renderDetail(it) {
   </div>
 
   <div class="card">
-    ${UI.title('近期趋势', trendConcl(it))}
-    <div class="tags" style="margin-bottom:12px">
-      ${s ? `<span class="tag ${s.last > s.ma20 ? 'good' : 'warn'}">${s.last > s.ma20 ? '站上 20 日均线' : '压在 20 日均线下方'}</span>
-      <span class="tag ${s.ma20 > s.ma60 ? 'good' : 'warn'}">${s.ma20 > s.ma60 ? '20 日线在 60 日线上方' : '20 日线在 60 日线下方'}</span>
-      <span class="tag mid">年化波动 ${s.vol.toFixed(0)}%</span>
-      <span class="tag mid">最大回撤 ${Math.abs(s.mdd).toFixed(0)}%</span>` : ''}
-    </div>
-    <div class="chart-head">
-      <div class="legend">
-        <span><i class="l-stock"></i>本股</span>
-        <span><i class="l-ma"></i>20 日均线</span>
-        <span><i class="l-index"></i>沪深300（同起点）</span>
-      </div>
+    <div class="section-title">
+      <span class="st-name">K 线解读</span>
       <div class="range">
         <button class="${state.range === '1m' ? 'on' : ''}" onclick="App.setRange('1m')">近1月</button>
         <button class="${state.range === '6m' ? 'on' : ''}" onclick="App.setRange('6m')">近半年</button>
         <button class="${state.range === '1y' ? 'on' : ''}" onclick="App.setRange('1y')">近1年</button>
       </div>
     </div>
+    <div class="k-line" id="kLine">${kb ? esc(KL.summary(kb)) : '历史 K 线不足 30 个交易日，形态算不出来'}</div>
+    <div class="k-legend">
+      <span><i class="k-sw up"></i>红 = 涨</span>
+      <span><i class="k-sw down"></i>绿 = 跌</span>
+      <span><i class="k-line-ma"></i>20 日均线（近一个月平均收盘价）</span>
+      <span><i class="k-line-hl"></i><em id="kHlTxt">虚线：近 60 日最高 / 最低</em></span>
+    </div>
     <div id="trendChart"></div>
+    <div class="k-card" id="kCard"></div>
     <div class="chart-note">${translationOf(it)}</div>
+    ${kb ? moreBox('形态速查：当前状态怎么读', KL.quick(kb).map(t => `<div class="bullet"><span class="dot b"></span><span><b>${esc(t.t)}</b>　${esc(t.body)}</span></div>`).join(''))
+    : ''}
     ${def.length ? moreBox('什么情况算看错了', def.map((t, i) => `<div class="bullet"><span class="dot ${i === 0 ? 'g' : i === 1 ? 'r' : 'b'}"></span><span>${t}</span></div>`).join('')) : ''}
   </div>
 
@@ -1844,13 +1845,21 @@ function renderChart(range) {
   const kl = it.kline;
   const n = range === '1m' ? 22 : range === '6m' ? 125 : 250;
   const part = kl.slice(-n);
-
   if (!part.length) { box.className = 'chart-empty'; box.textContent = '暂无数据'; return; }
 
-  const dates = part.map(k => k.date.slice(5));
-  const closes = part.map(k => k.close);
+  const kb = KL.build(kl);
+  state.kb = kb;
+  state.kpart = part;
+  /* 顶部一句话跟着范围走：窗口不到 60 根时不谈「近 60 日」，用窗口内的高低点 */
+  if (!kb) { box.className = 'chart-empty'; box.textContent = 'K 线数据不足，形态算不出来'; return; }
 
-  // 20 日均线：用完整序列计算后截取
+  const dates = part.map(k => k.date.slice(5));
+  const candles = part.map(k => [k.open, k.close, k.low, k.high]);
+  const vols = part.map(k => ({
+    value: k.volume,
+    itemStyle: { color: k.close >= k.open ? C.up : C.down }
+  }));
+
   const maFull = [];
   for (let i = 0; i < kl.length; i++) {
     if (i < 19) { maFull.push(null); continue; }
@@ -1860,113 +1869,121 @@ function renderChart(range) {
   }
   const maPart = maFull.slice(-n);
 
-  // 沪深300 归一化到同一起点
-  let idxPart = null;
-  if (state.indexKl && state.indexKl.length >= part.length) {
-    const ip = state.indexKl.slice(-part.length);
-    const base = closes[0] / ip[0].close;
-    idxPart = ip.map(k => +(k.close * base).toFixed(2));
+  /* 主图纵轴要罩住高低点虚线，否则那两条线会被裁掉 */
+  let hlHi = kb.hi60, hlLo = kb.lo60;
+  if (range === '1m') {
+    hlHi = Math.max.apply(null, part.map(k => k.high));
+    hlLo = Math.min.apply(null, part.map(k => k.low));
+  }
+  let yLo = hlLo;
+  let yHi = hlHi;
+  const yPad = (yHi - yLo) * 0.06 || yHi * 0.02;
+  const hlTxt = $('kHlTxt');
+  if (hlTxt) {
+    hlTxt.textContent = range === '1m'
+      ? `虚线：窗口内最高 ${f2(hlHi)} / 最低 ${f2(hlLo)}`
+      : `虚线：60 日最高 ${f2(hlHi)} / 最低 ${f2(hlLo)}`;
   }
 
-  const all = closes.concat(idxPart || [], maPart.filter(v => v !== null));
-  const min = Math.min.apply(null, all);
-  const max = Math.max.apply(null, all);
-  const pad = (max - min) * 0.12 || max * 0.05;
-
   state.chart.setOption({
-    animationDuration: 600,
-    grid: { left: 46, right: 12, top: 22, bottom: 24 },
-    tooltip: {
-      trigger: 'axis',
-      confine: true,
-      backgroundColor: '#fff',
-      borderColor: '#EFECE6',
-      borderWidth: 1,
-      padding: [8, 12],
-      textStyle: { color: '#2C2B29', fontSize: 12 },
-      extraCssText: 'box-shadow:0 4px 16px rgba(60,55,50,.12);border-radius:8px;',
-      formatter: params => {
-        const d0 = params[0];
-        let html = `<div style="font-size:12px;color:#8A8581;margin-bottom:6px">${d0.axisValue}</div>`;
-        let stock = null, ma = null, idx = null;
-        params.forEach(p => {
-          if (p.value === null || p.value === undefined) return;
-          const v = Number(p.value);
-          if (p.seriesName === '本股') stock = v;
-          else if (p.seriesName === '20日均线') ma = v;
-          else if (p.seriesName === '沪深300') idx = v;
-          html += `<div style="display:flex;justify-content:space-between;gap:14px;line-height:1.7">
-            <span>${p.marker}${p.seriesName}</span><b>${v.toFixed(2)}</b></div>`;
-        });
-
-        /* 把三条线的相对关系翻译成人话 */
-        const notes = [];
-        if (stock !== null && ma !== null && ma > 0) {
-          const gap = (stock - ma) / ma * 100;
-          notes.push(gap >= 0
-            ? `比自己的 20 日均线高 ${gap.toFixed(1)}%，短期处于均线之上`
-            : `比自己的 20 日均线低 ${Math.abs(gap).toFixed(1)}%，短期处于均线之下`);
+    animation: false,
+    axisPointer: { triggerOn: 'none', link: [{ xAxisIndex: 'all' }], lineStyle: { color: '#C6B9A6', width: 1 }, label: { show: false } },
+    grid: [
+      { left: 48, right: 18, top: 12, height: '60%' },
+      { left: 48, right: 18, top: '70%', height: '19%' }
+    ],
+    xAxis: [
+      { type: 'category', data: dates, gridIndex: 0, axisPointer: { show: true, type: 'line' }, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false } },
+      {
+        type: 'category', data: dates, gridIndex: 1, boundaryGap: true, axisPointer: { show: true, type: 'line' },
+        axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: {
+          color: '#8A8581', fontSize: 10, margin: 10,
+          interval: Math.max(1, Math.floor(part.length / 5))
         }
-        if (stock !== null && idx !== null && idx > 0) {
-          const gap = (stock - idx) / idx * 100;
-          notes.push(gap >= 0
-            ? `比沪深300 同期高 ${gap.toFixed(1)}%，跑赢大盘`
-            : `比沪深300 同期低 ${Math.abs(gap).toFixed(1)}%，跑输大盘`);
-        }
-        if (notes.length) {
-          html += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #EFECE6;
-            width:196px;white-space:normal;word-break:break-word;
-            font-size:11px;color:#5A5652;line-height:1.6">${notes.map(n => `<div>${n}</div>`).join('')}</div>`;
-        }
-        return html;
       }
-    },
-    xAxis: {
-      type: 'category',
-      data: dates,
-      boundaryGap: false,
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: {
-        color: '#8A8581', fontSize: 10, margin: 12,
-        interval: Math.max(1, Math.floor(part.length / 4)),
-        formatter: v => v
-      }
-    },
-    yAxis: {
-      type: 'value',
-      scale: true,
-      min: Math.floor((min - pad) * 100) / 100,
-      max: Math.ceil((max + pad) * 100) / 100,
-      axisLine: { show: false },
-      axisTick: { show: false },
-      axisLabel: {
-        color: '#8A8581', fontSize: 10, margin: 8,
-        formatter: v => Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)
+    ],
+    yAxis: [
+      {
+        gridIndex: 0, scale: true, splitNumber: 4, min: +(yLo - yPad).toFixed(2), max: +(yHi + yPad).toFixed(2),
+        axisLine: { show: false }, axisTick: { show: false },
+        axisLabel: { color: '#8A8581', fontSize: 10, margin: 8, formatter: v => v.toFixed(2) },
+        splitLine: { lineStyle: { color: '#F3F0EA' } }
       },
-      splitLine: { lineStyle: { color: '#F3F0EA' } }
-    },
+      { gridIndex: 1, min: 0, max: Math.max.apply(null, part.map(k => k.volume)) * 1.02, axisLine: { show: false }, axisTick: { show: false }, axisLabel: { show: false }, splitLine: { show: false } }
+    ],
     series: [
       {
-        name: '本股', type: 'line', data: closes, smooth: true, symbol: 'circle', symbolSize: 5,
-        showSymbol: false, color: '#7B8F9D',
-        lineStyle: { color: '#7B8F9D', width: 2.5 },
-        itemStyle: { color: '#7B8F9D' },
-        areaStyle: { color: 'rgba(123,143,157,0.10)' },
-        z: 3
+        name: 'K线', type: 'candlestick', data: candles, xAxisIndex: 0, yAxisIndex: 0,
+        barWidth: '68%', barMaxWidth: 12,
+        itemStyle: { color: C.up, color0: C.down, borderColor: C.up, borderColor0: C.down, borderWidth: 1 }
+      },
+      /* 两条高低点虚线用独立 series 画，markLine 在这个容器里量不稳 */
+      {
+        name: '60日最高', type: 'line', data: part.map(() => hlHi),
+        xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', silent: true, z: 1,
+        lineStyle: { type: 'dashed', width: 1, color: '#A9A29A' },
       },
       {
-        name: '20日均线', type: 'line', data: maPart, smooth: true, symbol: 'none', color: '#B89A7D',
-        lineStyle: { color: '#B89A7D', width: 1.4, type: 'solid' },
-        itemStyle: { color: '#B89A7D' }, z: 2
+        name: '60日最低', type: 'line', data: part.map(() => hlLo),
+        xAxisIndex: 0, yAxisIndex: 0, symbol: 'none', silent: true, z: 1,
+        lineStyle: { type: 'dashed', width: 1, color: '#A9A29A' },
       },
       {
-        name: '沪深300', type: 'line', data: idxPart, smooth: true, symbol: 'none', color: '#A6A29D',
-        lineStyle: { color: '#A6A29D', width: 1.3, type: 'dashed' },
-        itemStyle: { color: '#A6A29D' }, z: 1
-      }
+        name: '20日均线', type: 'line', data: maPart, xAxisIndex: 0, yAxisIndex: 0,
+        smooth: true, symbol: 'none', z: 3,
+        lineStyle: { color: '#B89A7D', width: 1.3 },
+        itemStyle: { color: '#B89A7D' }
+      },
+      { name: '成交量', type: 'bar', data: vols, xAxisIndex: 1, yAxisIndex: 1, barMaxWidth: 7 }
     ]
   }, true);
+
+  /* 整张画布上点一下，按 x 坐标换算成最近的 K 线；用原生事件，不依赖 zrender 命中测试 */
+  box.onclick = function (e) {
+    if (!state.chart) return;
+    const r = box.getBoundingClientRect();
+    const xy = state.chart.convertFromPixel({ gridIndex: 0 }, [e.clientX - r.left, e.clientY - r.top]);
+    if (!xy || xy[0] === null || xy[0] === undefined) return;
+    const i = Math.round(xy[0]);
+    if (i >= 0 && i < part.length) renderKCard(i);
+  };
+  renderKCard(part.length - 1);
+}
+
+/* 点击某根 K 线后固定在图下方显示的就是这一张卡，不做浮层 */
+function renderKCard(idx) {
+  const box = $('kCard');
+  const kp = state.kpart;
+  const kb = state.kb;
+  if (!box || !kp || !kp.length || !kb) return;
+  const i = Math.min(Math.max(0, idx), kp.length - 1);
+  const date = kp[i].date;
+  const day = kb.days.find(d => d.k.date === date);
+  if (!day) return;
+  const c = KL.dayCard(day);
+  const tag = c.shape ? `<span class="k-tag ${c.shape.tone}">${c.shape.t}</span>` : '<span class="k-tag mid">普通</span>';
+  box.innerHTML = `<div class="k-card-h">
+      <span class="k-card-d">${date}</span>${tag}
+      <span class="k-card-tip">点图里任意一根 K 线，看那天的数据</span>
+    </div>
+    <div class="k-card-rows">${c.rows.map(([a, b]) => `<span><em>${a}</em><b>${b}</b></span>`).join('')}</div>
+    <div class="k-card-read">${c.read}</div>`;
+
+  /* 图上叠一条竖线跟着选中走，否则点完不知道点的是哪一根 */
+  if (state.chart) {
+    const px = state.chart.convertToPixel({ xAxisIndex: 0 }, i);
+    if (px !== null && px !== undefined && !isNaN(px)) {
+      let cur = $('kCursor');
+      if (!cur) {
+        cur = document.createElement('div');
+        cur.id = 'kCursor';
+        $('trendChart').appendChild(cur);
+      }
+      cur.style.left = Math.round(px) + 'px';
+      cur.style.display = 'block';
+    }
+  }
 }
 
 /* ---------- 名词解释 ---------- */

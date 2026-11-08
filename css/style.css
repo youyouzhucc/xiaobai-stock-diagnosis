@@ -1143,3 +1143,50 @@ html { scrollbar-gutter: stable; }
 .tutor-h { font-size: 13.5px; margin: 10px 0 8px; }
 .tutor-sec p { font-size: 13px; line-height: 1.82; margin: 5px 0; }
 .tutor-warn { font-size: 12.5px; line-height: 1.7; padding: 11px 13px; }
+
+/* ---------- v48 K 线解读（替换原「近期趋势」折线图） ---------- */
+.section-title .range { margin-left: auto; }
+#trendChart { height: 300px; }
+#trendChart.chart-empty { height: auto; min-height: 0; }
+
+.k-line { font-size: 13px; line-height: 1.75; color: var(--text); margin: 10px 0 9px; }
+
+.k-legend { display: flex; flex-wrap: wrap; gap: 5px 16px; font-size: 11px; color: var(--text-sub); margin: 0 0 8px; }
+.k-legend span { display: inline-flex; align-items: center; gap: 5px; }
+.k-sw { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.k-sw.up { background: var(--red); }
+.k-sw.down { background: var(--green); }
+.k-line-ma { width: 14px; height: 2px; border-radius: 1px; background: var(--orange); display: inline-block; }
+.k-line-hl { width: 14px; height: 0; border-top: 1px dashed #C9C4BC; display: inline-block; }
+
+.k-card { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.k-card-h { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.k-card-d { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.k-card-tip { margin-left: auto; font-size: 11px; color: var(--text-weak); }
+.k-tag { font-size: 11px; line-height: 1.6; padding: 1px 7px; border-radius: 4px; background: var(--fill-grey); color: var(--text-sub); }
+.k-tag.good { background: var(--fill-green); color: #4C6157; }
+.k-tag.bad { background: var(--fill-red); color: #8C5F5F; }
+.k-card-rows { display: flex; flex-wrap: wrap; gap: 4px 26px; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.k-card-rows span { display: inline-flex; gap: 6px; }
+.k-card-rows em { font-style: normal; color: var(--text-sub); }
+.k-card-rows b { font-weight: 600; color: var(--text); }
+.k-card-read { margin-top: 9px; font-size: 12.5px; line-height: 1.78; color: var(--text-sub); }
+
+/* ---------- v48 提醒并入「数据解读」：同一网格，第一行是短板 ---------- */
+#detail-view .advice-row.risk { margin-bottom: 2px; }
+#detail-view .advice-row.risk .advice-v { color: var(--red); font-weight: 600; }
+#detail-view .advice-row.risk .advice-v b { font-weight: 700; }
+#detail-view .advice-row.risk.good .advice-v { color: #4C6157; }
+#detail-view .advice-row.risk .q-btn { margin-left: 6px; vertical-align: -2px; }
+
+/* 权限浮层：标题行带关闭按钮，与其它浮层一致 */
+.perm-h { display: flex; align-items: center; justify-content: space-between; }
+
+/* v48 修正：详情页里 v44 的 240px 选择器更靠前但特异性高，这里同权重再压一次并抬高 */
+#detail-view #trendChart { height: 352px; }
+#detail-view #trendChart.chart-empty { height: auto; }
+#trendChart { cursor: pointer; }
+
+/* 选中某根 K 线时的竖向标记 */
+#trendChart { position: relative; }
+#kCursor { position: absolute; top: 14px; bottom: 44px; width: 1px; background: #B0876A; opacity: .55; pointer-events: none; display: none; }
