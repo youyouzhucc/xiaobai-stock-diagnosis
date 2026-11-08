@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    K 线解读：全部是「能被读者拿数据核对」的客观口径，不做涨跌预测。
    build(kl)  -> { days, ma20, ma60, hi60, lo60, last }
    summary(b) -> 顶部一句话
@@ -87,10 +87,10 @@
         return '上影线占当日振幅 ' + (d.upper / r * 100).toFixed(0) + '%，最高 ' + f2(k.high) + ' 元回落到 ' + f2(k.close)
           + ' 元，收盘落在当日区间的 ' + pos + '% 位置。当日冲高后回落，收盘价低于当日成交中枢。单根 K 线只描述这一天。';
       case 'bigup':
-        return '当日涨 ' + sgn(d.chg, '%') + '，成交 ' + hand(k.volume) + '，是近 5 日均量的 ' + d.vr.toFixed(2)
+        return '当日涨 ' + Math.abs(d.chg).toFixed(2) + '%，成交 ' + hand(k.volume) + '，是近 5 日均量的 ' + d.vr.toFixed(2)
           + ' 倍。价格和成交量同时放大，收盘落在当日区间的 ' + pos + '% 位置。';
       case 'bigdown':
-        return '当日跌 ' + sgn(d.chg, '%') + '，成交 ' + hand(k.volume) + '，是近 5 日均量的 ' + d.vr.toFixed(2)
+        return '当日跌 ' + Math.abs(d.chg).toFixed(2) + '%，成交 ' + hand(k.volume) + '，是近 5 日均量的 ' + d.vr.toFixed(2)
           + ' 倍。价格和成交量同时放大，收盘落在当日区间的 ' + pos + '% 位置。';
       case 'doji':
         return '实体只占当日振幅 ' + ((d.body / r) * 100).toFixed(0) + '%，开盘 ' + f2(k.open) + ' 元、收盘 ' + f2(k.close)
