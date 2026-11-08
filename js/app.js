@@ -1703,12 +1703,12 @@ function renderDetail(it) {
 
     ${gateHTML(q.code)}
 
-    <div class="advice-h">这份数据怎么用</div>
+    <div class="advice-h">数据解读</div>
     <div class="advice">
-      <div class="advice-row"><span class="advice-k">一句话</span><span class="advice-v">${adv.main}</span></div>
+      <div class="advice-row"><span class="advice-k">整体判断</span><span class="advice-v">${adv.main}</span></div>
       <div class="advice-row"><span class="advice-k">分批节奏</span><span class="advice-v">${adv.batch}</span></div>
       <div class="advice-row"><span class="advice-k">适合人群</span><span class="advice-v">${adv.who}</span></div>
-      <div class="advice-note">以上是按数据口径写的一句说明，不是买卖建议。</div>
+      <div class="advice-note warn">以上是按数据口径写的一句说明，不是买卖建议。</div>
     </div>
   </div>
 

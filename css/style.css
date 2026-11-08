@@ -1121,3 +1121,6 @@ body {
 #detail-view .advice-k { font-size: 12.5px; color: var(--text-sub); }
 #detail-view .advice-v { font-size: 13px; line-height: 1.75; color: var(--text); }
 #detail-view .advice-note { font-size: 11.5px; color: var(--text-sub); opacity: .8; }
+
+/* 免责那句：红字提醒，字号不变 */
+#detail-view .advice-note.warn { color: var(--red); opacity: 1; }
