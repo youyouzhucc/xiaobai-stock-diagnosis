@@ -1,4 +1,4 @@
-/* 小白诊股 · 页面逻辑 */
+/* 小白财报速查 · 页面逻辑 */
 
 const POOL = [
   { secid: '1.600519', name: '贵州茅台', py: 'gzmt' },
@@ -1046,7 +1046,7 @@ function directCardHTML() {
   return `<div class="stock-item direct" onclick="App.openByCode('${kw}')">
     <div class="si-top">
       <div class="si-left">
-        <span class="si-name">直接诊断 ${kw}</span>
+        <span class="si-name">直接体检 ${kw}</span>
       </div>
       <div class="si-right"><span class="si-go">出报告 ›</span></div>
     </div>
@@ -1579,42 +1579,62 @@ function lvDiv(v) {
   return '5% 以上，很高，留神是不是一次性大额派现';
 }
 
+/* 折叠盒：次要指标默认收起，一屏只留最该看的几个数 */
+const moreBox = (label, html) => `<details class="more"><summary>${label}</summary><div class="more-body">${html}</div></details>`;
+
+/* 详情页：单列从上往下读，先结论后数据，数字能砍的都砍进折叠里 */
 function renderDetail(it) {
-  const q = it.quote, d = it.diag, s = d && d.stats, fin = it.fin;
+  const q = it.quote;
+  const d = it.diag || {};
+  const s = d.stats || null;
+  const fin = it.fin;
   const divv = it.dividend;
-  const heat = heatOf(q);
-  const adv = adviceOf(it);
   const odds = oddsOf(it);
-  const def = defenseOf(it);
-  const hp = healthOf(d && d.total);
   const w = weakestOf(it);
-  curDetail = d || null;
+  const hp = healthOf(d.total);
+  const enough = typeof d.total === 'number';
+  curDetail = enough ? d : null;
 
   const finNote = fin
     ? `财报口径：${esc(fin.report)}${fin.notice ? ' · 披露于 ' + esc(fin.notice) : ''}`
     : '财报数据暂不可用（接口超时或该股暂无数据）';
 
-  const baseItems = fin ? UI.kvGrid([
-    { label: ['ROE', 'roe'], value: fin.roe === null ? '—' : f1(fin.roe) + '%', desc: lvRoe(fin.roe) },
-    d.financial
-      ? { label: ['每股收益', 'eps'], value: fin.eps === null ? '—' : f2(fin.eps) + ' 元', desc: lvEps(fin.eps) }
-      : { label: ['毛利率', 'margin'], value: fin.grossMargin === null ? '—' : f1(fin.grossMargin) + '%', desc: lvMargin(fin.grossMargin) },
-    {
-      label: [d.financial ? '净利率' : '资产负债率', d.financial ? 'netmargin' : 'debt'],
-      value: d.financial
-        ? (fin.netMargin === null ? '—' : f1(fin.netMargin) + '%')
-        : (fin.debtRatio === null ? '—' : f1(fin.debtRatio) + '%'),
-      desc: d.financial ? lvNetMargin(fin.netMargin) : lvDebt(fin.debtRatio)
-    },
-    { label: ['每股经营现金流', 'cash'], value: fin.cashPerShare === null ? '—' : f2(fin.cashPerShare) + ' 元', desc: lvCash(fin.cashPerShare) }
-  ]) : `<div class="kv" style="grid-column:1/-1"><div class="kv-label">财务数据</div><div class="kv-val" style="font-size:15px">暂不可用</div><div class="kv-desc">接口没有返回这只股票的财报，底子分不参与综合评分</div></div>`;
+  /* 顶部三个标签：先给一句人话结论，具体数字放到下面模块里 */
+  const L3 = (name, o) => `<span class="d-tag ${o.c}"><b>${esc(name)}</b>${esc(o.t)}</span>`;
+  const baseTag = v => (v === null || v === undefined) ? { t: '数据缺', c: 'mid' }
+    : v >= 85 ? { t: '扎实', c: 'good' }
+      : v >= 70 ? { t: '还行', c: 'good' }
+        : v >= 55 ? { t: '一般', c: 'mid' }
+          : { t: '偏弱', c: 'bad' };
+  const valTag = v => (v === null || v === undefined) ? { t: '数据缺', c: 'mid' }
+    : v >= 80 ? { t: '便宜', c: 'good' }
+      : v >= 65 ? { t: '偏便宜', c: 'mid' }
+        : v >= 50 ? { t: '中性', c: 'mid' }
+          : { t: '偏贵', c: 'bad' };
+  const trendTag = !s ? { t: '数据缺', c: 'mid' }
+    : (s.last > s.ma20 && s.ma20 > s.ma60) ? { t: '走强', c: 'good' }
+      : s.last > s.ma20 ? { t: '刚转强', c: 'mid' }
+        : s.ma20 > s.ma60 ? { t: '回调中', c: 'mid' }
+          : { t: '偏弱', c: 'bad' };
 
-  const valItems = UI.kvGrid([
-    { label: ['市盈率 PE', 'pe'], value: q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe) + ' 倍', desc: lvPE(q.pe, q.pe !== null && q.pe <= 0) },
-    { label: ['市净率 PB', 'pb'], value: f1(q.pb), desc: lvPB(q.pb) },
-    { label: ['价格分位', 'pos'], value: s ? s.pos.toFixed(0) + '%' : '—', desc: s ? lvPos(s.pos) : '' },
-    { label: ['总市值', 'cap'], value: fcap(q.mktcap), desc: lvCap(q.mktcap) }
-  ]);
+  const bandCls = w ? w.cls : hp.cls;
+  const scoreBg = bandCls === 'bad' ? 'var(--red)' : bandCls === 'warn' ? 'var(--orange)' : bandCls === 'good' ? 'var(--green)' : '#A9A39A';
+
+  /* 公司底子：主栏放 ROE、负债结构、经营现金流三项（正好铺满一行），毛利率收进折叠 */
+  const roeItem = { label: ['ROE', 'roe'], value: fin && fin.roe !== null ? f1(fin.roe) + '%' : '—', desc: fin ? lvRoe(fin.roe) : '' };
+  const debtItem = d.financial
+    ? { label: ['净利率', 'netmargin'], value: fin && fin.netMargin !== null ? f1(fin.netMargin) + '%' : '—', desc: fin ? lvNetMargin(fin.netMargin) : '' }
+    : { label: ['资产负债率', 'debt'], value: fin && fin.debtRatio !== null ? f1(fin.debtRatio) + '%' : '—', desc: fin ? lvDebt(fin.debtRatio) : '' };
+  const cashItem = { label: ['每股经营现金流', 'cash'], value: fin && fin.cashPerShare !== null ? f2(fin.cashPerShare) + ' 元' : '—', desc: fin ? lvCash(fin.cashPerShare) : '' };
+  const baseExtra = d.financial
+    ? UI.kvGrid([{ label: ['每股收益', 'eps'], value: fin && fin.eps !== null ? f2(fin.eps) + ' 元' : '—', desc: fin ? lvEps(fin.eps) : '' }])
+    : UI.kvGrid([{ label: ['毛利率', 'margin'], value: fin && fin.grossMargin !== null ? f1(fin.grossMargin) + '%' : '—', desc: fin ? lvMargin(fin.grossMargin) : '' }]);
+
+  /* 估值：PE、PB、价格分位三个留着，市值收进折叠 */
+  const peItem = { label: ['市盈率 PE', 'pe'], value: q.pe === null ? '—' : q.pe <= 0 ? '亏损' : f1(q.pe) + ' 倍', desc: lvPE(q.pe, q.pe !== null && q.pe <= 0) };
+  const pbItem = { label: ['市净率 PB', 'pb'], value: f1(q.pb), desc: lvPB(q.pb) };
+  const posItem = { label: ['价格分位', 'pos'], value: s ? s.pos.toFixed(0) + '%' : '—', desc: s ? lvPos(s.pos) : '' };
+  const capItem = { label: ['总市值', 'cap'], value: fcap(q.mktcap), desc: lvCap(q.mktcap) };
 
   const reportRows = fin ? [
     ['营业收入', fmoney(fin.revenue) + ' 元', fin.revenueYoY],
@@ -1627,20 +1647,14 @@ function renderDetail(it) {
       <span><b>${val}</b>${yoy === null ? '' : `<span class="report-tag ${yoy > 0 ? 'good' : yoy < 0 ? 'bad' : 'mid'}">同比 ${yoy > 0 ? '+' : ''}${f1(yoy)}%</span>`}</span>
     </div>`).join('') : '<div class="report-row"><span>财报数据暂不可用</span><span>—</span></div>';
 
+  const def = s ? defenseOf(it) : [];
+
   $('detail-body').innerHTML = `
   <div class="card">
     <div class="d-head">
       <div>
         <div class="d-title">${esc(q.name)}</div>
         <div class="d-sub">${q.code} · ${esc(q.industry)}${UI.badge(q.code)}</div>
-      </div>
-    </div>
-
-    <div class="d-band ${w ? w.cls : hp.cls}">
-      <div class="d-band-score" style="background:${(w ? w.cls : hp.cls) === 'bad' ? 'var(--red)' : (w ? w.cls : hp.cls) === 'warn' ? 'var(--orange)' : (w ? w.cls : hp.cls) === 'good' ? 'var(--green)' : '#A9A39A'}">${d.total === null ? '—' : d.total}<small>分</small></div>
-      <div class="d-band-main">
-        ${w ? `<div class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span></div>` : ''}
-        <div class="d-band-note">${scoreLine(d)}</div>
       </div>
     </div>
 
@@ -1653,28 +1667,60 @@ function renderDetail(it) {
       <span class="d-rank" id="d-rank">全市场排名加载中…</span>
     </div>
 
+    <div class="d-tags">
+      ${L3('公司底子', baseTag(d.base))}
+      ${L3('估值水平', valTag(d.val))}
+      ${L3('近期趋势', trendTag)}
+    </div>
+
+    <div class="d-band ${bandCls}">
+      <div class="d-band-main">
+        ${w ? `<div class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span></div>` : ''}
+        <div class="d-band-note">${enough ? scoreLine(d) : '行情或财报缺的项太多，能用的不到三项，就不硬凑一个总分了——数据不够时给分，比不给更容易误导。'}</div>
+      </div>
+      <div class="d-band-score" style="background:${scoreBg}">${enough ? d.total : '—'}<small>分</small></div>
+    </div>
+
     ${gateHTML(q.code)}
   </div>
 
-  <div class="d-cols">
-  <div class="d-col">
+  <div class="card">
+    ${UI.title('公司底子', baseConcl(d), (d.base === null || d.base === undefined) ? '—' : d.base + '/100')}
+    ${fin ? UI.kvGrid([roeItem, debtItem, cashItem]) + moreBox('展开看：' + (d.financial ? '每股收益' : '毛利率'), baseExtra)
+    : `<div class="kv" style="grid-column:1/-1"><div class="kv-label">财务数据</div><div class="kv-val" style="font-size:15px">暂不可用</div><div class="kv-desc">接口没有返回这只股票的财报，底子这一项不参与综合评分</div></div>`}
+    <div class="st-note">${finNote}${d.financial ? ' · 金融业不评资产负债率' : ''}</div>
+  </div>
 
   <div class="card">
-    ${UI.title('操作建议')}
-    <div class="heat"><span>${heat.text}</span></div>
-    <div class="advice-body" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px">${adv.main}</div>
-    <div class="advice-block">
-      <div class="advice-sub">分批节奏</div>
-      <div class="advice-body">${adv.batch}</div>
+    ${UI.title('估值水平', valConcl(d), (d.val === null || d.val === undefined) ? '—' : d.val + '/100')}
+    ${UI.kvGrid([peItem, pbItem, posItem])}
+    ${moreBox('展开看：总市值', UI.kvGrid([capItem]))}
+    <div class="st-note">PE 取滚动市盈率（TTM），亏损公司按「亏损」显示、不参与打分。估值按上一交易日收盘价算，盘中不重算，涨跌幅度大时 PE、PB 会有一点滞后。</div>
+  </div>
+
+  <div class="card">
+    ${UI.title('近期趋势', trendConcl(it), (d.trend === null || d.trend === undefined) ? '—' : d.trend + '/100')}
+    <div class="tags" style="margin-bottom:12px">
+      ${s ? `<span class="tag ${s.last > s.ma20 ? 'good' : 'warn'}">${s.last > s.ma20 ? '站上 20 日均线' : '压在 20 日均线下方'}</span>
+      <span class="tag ${s.ma20 > s.ma60 ? 'good' : 'warn'}">${s.ma20 > s.ma60 ? '20 日线在 60 日线上方' : '20 日线在 60 日线下方'}</span>
+      <span class="tag mid">年化波动 ${s.vol.toFixed(0)}%</span>
+      <span class="tag mid">最大回撤 ${Math.abs(s.mdd).toFixed(0)}%</span>` : ''}
     </div>
-    <div class="advice-block">
-      <div class="advice-sub">适合人群</div>
-      <div class="advice-body">${adv.who}</div>
+    <div class="chart-head">
+      <div class="legend">
+        <span><i class="l-stock"></i>本股</span>
+        <span><i class="l-ma"></i>20 日均线</span>
+        <span><i class="l-index"></i>沪深300（同起点）</span>
+      </div>
+      <div class="range">
+        <button class="${state.range === '1m' ? 'on' : ''}" onclick="App.setRange('1m')">近1月</button>
+        <button class="${state.range === '6m' ? 'on' : ''}" onclick="App.setRange('6m')">近半年</button>
+        <button class="${state.range === '1y' ? 'on' : ''}" onclick="App.setRange('1y')">近1年</button>
+      </div>
     </div>
-    <div class="advice-block">
-      <div class="advice-sub">跟踪防线</div>
-      ${def.map((t, i) => `<div class="bullet"><span class="dot ${i === 0 ? 'g' : i === 1 ? 'r' : 'b'}"></span><span>${t}</span></div>`).join('')}
-    </div>
+    <div id="trendChart"></div>
+    <div class="chart-note">${translationOf(it)}</div>
+    ${def.length ? moreBox('什么情况算看错了', def.map((t, i) => `<div class="bullet"><span class="dot ${i === 0 ? 'g' : i === 1 ? 'r' : 'b'}"></span><span>${t}</span></div>`).join('')) : ''}
   </div>
 
   <div class="card">
@@ -1702,52 +1748,12 @@ function renderDetail(it) {
     ${UI.kvGrid([
       { label: ['换手率', 'turnover'], value: q.turnover === null ? '—' : f1(q.turnover) + '%', desc: lvTurn(q.turnover) },
       { label: ['量比', 'volratio'], value: q.volratio === null ? '—' : f2(q.volratio), desc: lvVR(q.volratio) },
-      { label: ['股息率', 'dividend'], value: divv && divv.yieldPct !== null ? f2(divv.yieldPct) + '%' : '—', desc: divv ? lvDiv(divv.yieldPct) : '' },
-      { label: '近一年派现', small: true, value: divv && divv.count ? `${divv.count} 次 · 每股 ${f2(divv.dps)} 元` : '没有分红', desc: divv && divv.lastDate ? '最近一次除息日 ' + divv.lastDate : '这一年没有派现记录' }
+      { label: ['股息率', 'dividend'], value: divv && divv.yieldPct !== null ? f2(divv.yieldPct) + '%' : '—', desc: divv ? lvDiv(divv.yieldPct) : '' }
     ])}
+    ${moreBox('展开看：近一年派现记录', UI.kvGrid([
+      { label: '近一年派现', small: true, value: divv && divv.count ? `${divv.count} 次 · 每股 ${f2(divv.dps)} 元` : '没有分红', desc: divv && divv.lastDate ? '最近一次除息日 ' + divv.lastDate : '这一年没有派现记录' }
+    ]))}
     <div class="st-note">${divNote(divv, q)}</div>
-  </div>
-
-  </div>
-  <div class="d-col">
-
-  <div class="card">
-    ${UI.title('公司底子', baseConcl(d), d.base === null ? '—' : d.base + '/100')}
-    ${UI.bar(d.base, 'green')}
-    ${baseItems}
-    <div class="st-note">${finNote}${d.financial ? ' · 金融业不评资产负债率' : ''}</div>
-  </div>
-
-  <div class="card">
-    ${UI.title('估值水平', valConcl(d), d.val === null ? '—' : d.val + '/100')}
-    ${UI.bar(d.val, 'orange')}
-    ${valItems}
-    <div class="st-note">PE 取的是滚动市盈率（TTM），亏损公司按「亏损」显示、不参与打高分。</div>
-  </div>
-
-  <div class="card">
-    ${UI.title('近期趋势', trendConcl(it), d.trend === null ? '—' : d.trend + '/100')}
-    ${UI.bar(d.trend, 'blue')}
-    <div class="tags" style="margin-bottom:12px">
-      <span class="tag ${s && s.last > s.ma20 ? 'good' : 'warn'}">${s && s.last > s.ma20 ? '站上 20 日均线' : '压在 20 日均线下方'}</span>
-      ${s ? `<span class="tag ${s.ma20 > s.ma60 ? 'good' : 'warn'}">${s.ma20 > s.ma60 ? '20 日线在 60 日线上方' : '20 日线在 60 日线下方'}</span>` : ''}
-      ${s ? `<span class="tag mid">年化波动 ${s.vol.toFixed(0)}%</span>` : ''}
-      ${s ? `<span class="tag mid">最大回撤 ${Math.abs(s.mdd).toFixed(0)}%</span>` : ''}
-    </div>
-    <div class="chart-head">
-      <div class="legend">
-        <span><i class="l-stock"></i>本股</span>
-        <span><i class="l-ma"></i>20 日均线</span>
-        <span><i class="l-index"></i>沪深300（同起点）</span>
-      </div>
-      <div class="range">
-        <button class="${state.range === '1m' ? 'on' : ''}" onclick="App.setRange('1m')">近1月</button>
-        <button class="${state.range === '6m' ? 'on' : ''}" onclick="App.setRange('6m')">近半年</button>
-        <button class="${state.range === '1y' ? 'on' : ''}" onclick="App.setRange('1y')">近1年</button>
-      </div>
-    </div>
-    <div id="trendChart"></div>
-    <div class="chart-note">${translationOf(it)}</div>
   </div>
 
   <div class="card">
@@ -1756,11 +1762,8 @@ function renderDetail(it) {
     <div class="st-note">数据来自上市公司定期报告，按最近已披露的报告期展示。</div>
   </div>
 
-  </div>
-  </div>
-
   <div class="disclaimer">
-    行情、历史 K 线来自东方财富公开接口，财务数据来自上市公司定期报告。<br>
+    行情、历史 K 线来自东方财富公开接口，财务数据来自上市公司定期报告。接口偶尔会限流或抽风，遇到加载不出来，刷新一下或过几分钟再看。<br>
     <b>以上全部是客观数据整理，不构成任何投资建议。</b><br>
     历史数据不代表未来，股市有风险，投资需谨慎。
     <div class="ver">${VERSION}</div>

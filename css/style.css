@@ -1,4 +1,4 @@
-/* ===== 小白诊股 · 莫兰迪低饱和配色 ===== */
+﻿/* ===== 小白诊股 · 莫兰迪低饱和配色 ===== */
 :root {
     --bg: #F6F3ED;
     --card: #FFFFFF;
@@ -536,7 +536,12 @@ body {
 
 /* ---------- 详情页 ---------- */
 /* 详情页：宽度跟随页面；宽屏分两栏（左=怎么做，右=数据面） */
-#detail-view { max-width: 100%; margin: 0 auto; }
+/* 单列阅读：内容居中限宽，一行别拉太长，不然眼睛要来回扫 */
+#detail-view { max-width: 1100px; margin: 0 auto; }
+/* 详情页指标一格大约是正文宽度的一半，宽屏下排三列刚好填满 */
+#detail-view .kv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 900px) { #detail-view .kv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { #detail-view .kv-grid { grid-template-columns: minmax(0, 1fr); } }
 .d-cols { display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; gap: 0 14px; }
 .d-col { min-width: 0; }
 @media (min-width: 1080px) {
@@ -569,12 +574,13 @@ body {
 .d-band.warn { background: var(--fill-orange); }
 .d-band.bad { background: var(--fill-red); }
 .d-band.mid { background: var(--fill-grey); }
+/* 分数退到右边、缩小：它只是体检结论的脚注，不是这页的主角 */
 .d-band-score {
-    color: #fff; border-radius: 10px; padding: 4px 11px;
-    font-size: 19px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 2px;
-    flex: none; line-height: 1.35;
+    color: #fff; border-radius: 8px; padding: 3px 9px;
+    font-size: 15px; font-weight: 700; display: inline-flex; align-items: baseline; gap: 2px;
+    flex: none; line-height: 1.35; order: 2; margin-left: auto;
 }
-.d-band-score small { font-size: 11.5px; font-weight: 500; }
+.d-band-score small { font-size: 10.5px; font-weight: 500; opacity: .9; }
 .d-band-main { flex: 1; min-width: 0; }
 .d-band-t { font-size: 12.5px; font-weight: 700; line-height: 1.6; }
 .d-band.good .d-band-t { color: var(--green); }
@@ -599,6 +605,31 @@ body {
 }
 .d-pricebar .big { font-size: 17px; font-weight: 700; color: var(--text); }
 .d-pricebar .pct { font-weight: 700; }
+
+/* 三标签：详情页第一眼看到的三个结论词，比分数先读 */
+.d-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.d-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; padding: 5px 11px; border-radius: 7px;
+    border: 1px solid transparent;
+}
+.d-tag b { font-weight: 700; }
+.d-tag.good { background: var(--fill-green); color: var(--green); border-color: #D1DCD6; }
+.d-tag.warn { background: var(--fill-orange); color: var(--orange); border-color: #E6D8CD; }
+.d-tag.bad { background: var(--fill-red); color: var(--red); border-color: #EBD6D6; }
+.d-tag.mid { background: var(--fill-grey); color: var(--text-sub); border-color: var(--line-strong); }
+
+/* 折叠：次要指标默认收起，不跟主指标抢注意力 */
+.more { margin-top: 8px; border-top: 1px dashed var(--line); padding-top: 8px; }
+.more > summary {
+    list-style: none; cursor: pointer; font-size: 11.5px; color: var(--text-weak);
+    display: inline-flex; align-items: center; gap: 4px;
+}
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary::after { content: '+'; font-size: 11px; font-weight: 700; opacity: .55; }
+.more[open] > summary::after { content: '−'; }
+.more > summary:hover { color: var(--text-sub); }
+.more-body { margin-top: 9px; }
 
 /* ---------- 体检结论：分数只当体检报告，不当推荐度 ---------- */
 

@@ -139,10 +139,13 @@ const Score = (() => {
     Object.keys(W).forEach(k => {
       if (typeof parts[k] === 'number') { sum += parts[k] * W[k]; wsum += W[k]; }
     });
+    /* 四项里能用的不到三项就不出总分：缺项重分权重会把某一项的权重摊到别的项上，
+       分数会虚高，宁可显示「数据不足」也不给一个看起来精确的数字 */
+    const avail = Object.keys(W).filter(k => typeof parts[k] === 'number').length;
 
     const r = v => (typeof v === 'number' ? Math.round(clamp(v)) : null);
     return {
-      total: wsum ? Math.round(clamp(sum / wsum)) : null,
+      total: (avail >= 3 && wsum) ? Math.round(clamp(sum / wsum)) : null,
       base: r(parts.base),
       val: r(parts.val),
       trend: r(parts.trend),
