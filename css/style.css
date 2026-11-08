@@ -1124,3 +1124,22 @@ body {
 
 /* 免责那句：红字提醒，字号不变 */
 #detail-view .advice-note.warn { color: var(--red); opacity: 1; }
+
+/* ---------- v46 浮层可读性 + 滚动条占位（防止弹层时页面左右跳） ---------- */
+/* 永远给滚动条留位置：打开浮层锁滚动时，内容宽度不变，页面不会横移 */
+html { scrollbar-gutter: stable; }
+
+.know-card { width: min(620px, 100%); padding: 22px 26px 20px; }
+.know-h { margin-bottom: 14px; }
+.know-body { font-size: 13.5px; line-height: 1.8; }
+.know-body p { margin: 0 0 13px; }
+.know-body ul { margin: 8px 0 13px; padding-left: 20px; }
+.know-body li { margin-bottom: 7px; }
+.know-body .know-warn { margin-top: 6px; font-size: 13px; padding: 11px 13px; }
+
+/* ---------- v46 新手浮层：条目之间拉开，别糊成一片 ---------- */
+.tutor-body { padding: 4px 20px 16px; }
+.tutor-sec { margin-bottom: 20px; }
+.tutor-h { font-size: 13.5px; margin: 10px 0 8px; }
+.tutor-sec p { font-size: 13px; line-height: 1.82; margin: 5px 0; }
+.tutor-warn { font-size: 12.5px; line-height: 1.7; padding: 11px 13px; }

@@ -1,4 +1,4 @@
-/* 全市场 A 股：一次性载入整张表（分 56 页请求），之后筛选 / 排序 / 翻页全在本地算 */
+﻿/* 全市场 A 股：一次性载入整张表（分 56 页请求），之后筛选 / 排序 / 翻页全在本地算 */
 const PAGE_SIZE = 50;       // 每屏显示多少只
 const FETCH_SIZE = 100;     // 接口单次最多给 100 条
 const CLIST = 'https://push2.eastmoney.com/api/qt/clist/get';
@@ -128,14 +128,14 @@ const THEMES = [
     id: 'cheap',
     label: '估值最便宜',
     sort: 'pe_asc',
-    hint: '按市盈率从低到高排，只列真正赚钱的（PE 为正）。便宜不等于好，也可能是行业走下坡。',
+    hint: '按市盈率从低到高排，只列真正赚钱的（PE 为正）。低 PE 也可能来自利润下滑或行业下行，需要看财报口径。',
     test: d => tradable(d) && num(d.f9) >= 1
   },
   {
     id: 'bluechip',
     label: '便宜的大块头',
     sort: 'pe_asc',
-    hint: '市值 1000 亿以上、市盈率 20 倍以内。大盘股波动小，适合当底仓看，但涨得也慢。',
+    hint: '市值 1000 亿以上、市盈率 20 倍以内。市值 1000 亿以上、PE 20 倍以内，波动幅度通常小于小盘股。',
     test: d => tradable(d) && num(d.f20) >= 1e11 && num(d.f9) >= 1 && num(d.f9) <= 20
   },
   {
@@ -149,7 +149,7 @@ const THEMES = [
     id: 'rise60',
     label: '近两月涨最猛',
     sort: 'd60_desc',
-    hint: '近 60 个交易日涨得最多的。涨得猛也可能是情绪推的，追高前先看估值贵不贵。',
+    hint: '近 60 个交易日涨得最多的。涨幅越大，波动和回撤通常也越大，需和估值一起看。',
     test: d => tradable(d) && num(d.f24) !== null && num(d.f24) >= 20
   },
   {
@@ -163,7 +163,7 @@ const THEMES = [
     id: 'cold',
     label: '没人搭理',
     sort: 'turn_asc',
-    hint: '换手率不到 1%，买卖都清淡。想买容易、想卖可能卖不掉，适合能长期拿着的人。',
+    hint: '换手率不到 1%，买卖都清淡。买卖都清淡，想卖出时可能不容易成交。',
     test: d => tradable(d) && num(d.f8) !== null && num(d.f8) < 1 && num(d.f9) >= 1
   }
 ];

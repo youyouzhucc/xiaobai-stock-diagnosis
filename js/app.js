@@ -246,10 +246,16 @@ const KNOW = {
   },
   score: {
     t: '这个分数怎么读',
-    body: `<p><b>怎么算的</b>：底子 40%（赚钱能力 + 财务稳不稳）、估值 30%（贵不贵）、趋势 20%（最近往哪走）、风险 10%（波动和最大回撤）。某一项数据缺了就重新分配权重，绝不拿 0 分替代。</p>
-<p><b>档位只是体检结论</b>：80 以上「体检良好」、65–79「体检尚可」、50–64「有疑点」、50 以下「多项异常」。它描述的是这家公司当下有没有硬伤，不是明天会不会涨。</p>
-<p><b>为什么先看「核心风险」那一条</b>：总分再高，也先把最弱的一项摆出来。长板决定它像不像好公司，短板决定你会不会亏钱。</p>
-<div class="know-warn">分数是体检报告，不是推荐度，更不是买入信号。真要动手，还得看价格位置、你自己的仓位和承受力。</div>`
+    body: `<p><b>四项各看什么</b></p>
+<ul>
+<li><b>公司底子（40%）</b>：ROE、资产负债率、每股经营现金流，看赚钱能力和财务结构。</li>
+<li><b>估值水平（30%）</b>：PE、PB、价格分位，看现在贵不贵。</li>
+<li><b>近期趋势（20%）</b>：价格在 20 日 / 60 日均线的哪一侧、近 20 个交易日涨跌幅，看最近往哪走。</li>
+<li><b>风险（10%）</b>：年化波动率、近一年最大回撤，看波动幅度有多大。</li>
+</ul>
+<p><b>指标缺了怎么算</b>：某一项取不到（比如亏损公司没有有效 PE），这一项剔除，权重按剩下的项重新分配，不会拿 0 分顶替。</p>
+<p><b>档位含义</b>：80 以上「体检良好」、65–79「体检尚可」、50–64「有疑点」、50 以下「多项异常」。</p>
+<div class="know-warn">分数是上面四组数据的加权结果，不是推荐度，也不是买入信号。高分只说明这四项没有明显硬伤；低分也不排除后续改善。</div>`
   }
 };
 
@@ -1244,7 +1250,7 @@ function healthOf(total) {
 }
 
 function scoreLine(d) {
-  if (!d || d.total === null) return '行情或财报还没拉全，分数先空着——没数据就不编分。';
+  if (!d || d.total === null) return '行情或财报还没拉全，分数先空着。';
   /* 项名跟下面几个模块的标题完全一致，别自己另起一套叫法 */
   const dims = [
     ['公司底子', d.base, 40],
@@ -1253,10 +1259,8 @@ function scoreLine(d) {
     ['风险', d.risk, 10]
   ].filter(x => x[1] !== null);
   const wsum = dims.reduce((a, b) => a + b[2], 0);
-  const rule = dims.map(([n, , w]) => `${n}×${Math.round(w * 100 / wsum)}%`).join(' + ');
-  return `计算公式：${rule}，相加得 ${d.total} 分。某一项数据缺了，权重会按剩下的项重新分配。`
-    + '<br>'
-    + `公司底子＝赚钱和财务稳不稳，估值水平＝现在贵不贵，近期趋势＝最近往哪走，风险＝波动多大、跌得最狠有多深。分高只说明没明显硬伤，不代表会涨。`;
+  const items = dims.map(([n, v, w]) => `${n} ${v} 分 × ${Math.round(w * 100 / wsum)}%`).join('，');
+  return `${items}，合计 ${d.total} 分。`;
 }
 
 /* 最大的那个短板：不管总分多少，先把最扎人的一条摆到最上面 */
@@ -1273,23 +1277,23 @@ function weakestOf(it) {
 
   const w = dims.reduce((a, b) => (a.v <= b.v ? a : b));
   /* 四项都在 60 以上就不硬造短板，如实说「四项都过线」 */
-  if (w.v >= 60) return { cls: 'good', title: `最低的${w.name}也有 ${w.v} 分`, why: '看着健康，但健康不等于会涨，价格什么时候动还得看市场。' };
+  if (w.v >= 60) return { cls: 'good', title: `最低的${w.name}也有 ${w.v} 分`, why: '四项都在 60 分以上，没有明显短板；分数只反映数据，不预测涨跌。' };
 
   let why = '';
   if (w.k === 'base') {
-    if (f.roe !== null && f.roe !== undefined && f.roe < 8) why = `ROE 只有 ${f1(f.roe)}%，股东投的钱赚回来很慢`;
-    else if (f.debtRatio !== null && f.debtRatio !== undefined && f.debtRatio >= 70) why = `资产负债率 ${f1(f.debtRatio)}%，靠借钱撑规模，利息一涨就难受`;
+    if (f.roe !== null && f.roe !== undefined && f.roe < 8) why = `ROE 只有 ${f1(f.roe)}%，低于 8% 的及格线`;
+    else if (f.debtRatio !== null && f.debtRatio !== undefined && f.debtRatio >= 70) why = `资产负债率 ${f1(f.debtRatio)}%，高于 70% 的高杠杆区间`;
     else if (f.cashPerShare !== null && f.cashPerShare !== undefined && f.cashPerShare <= 0) why = '每股经营现金流为负，账上利润没变成现金';
-    else why = '赚钱能力和财务结构都偏弱，景气一差就容易亏';
+    else why = '三项财务指标的综合分处在低位';
   } else if (w.k === 'val') {
-    if (q.pe !== null && q.pe <= 0) why = '公司还在亏钱，PE 用不上，估值没有参照物';
-    else if (s && s.pos >= 75) why = `PE ${f1(q.pe)} 倍，价格已经处在近一年 ${s.pos.toFixed(0)}% 的高位，追高风险大`;
-    else why = `PE ${f1(q.pe)} 倍、PB ${f1(q.pb)}，比同行业明显贵，预期先透支了`;
+    if (q.pe !== null && q.pe <= 0) why = '净利润为负，PE 显示「亏损」，估值改用 PB 判断';
+    else if (s && s.pos >= 75) why = `PE ${f1(q.pe)} 倍，价格已经处在近一年 ${s.pos.toFixed(0)}% 分位（75% 以上算高位区间）`;
+    else why = `PE ${f1(q.pe)} 倍、PB ${f1(q.pb)}，都在样本池上沿`;
   } else if (w.k === 'trend') {
-    if (s && s.ret20 !== null) why = `近 20 个交易日 ${s.ret20 >= 0 ? '涨' : '跌'}了 ${Math.abs(s.ret20).toFixed(1)}%，还在 20 日均线下方，短期往下走`;
+    if (s && s.ret20 !== null) why = `近 20 个交易日 ${s.ret20 >= 0 ? '涨' : '跌'}了 ${Math.abs(s.ret20).toFixed(1)}%，价格在 20 日均线下方`;
     else why = '价格在 20 日均线下方，短期走势偏弱';
   } else {
-    why = s ? `年化波动 ${s.vol.toFixed(0)}%、最深回撤 ${Math.abs(s.mdd).toFixed(0)}%，拿不住的人容易割在低点` : '波动偏大，不适合重仓';
+    why = s ? `年化波动 ${s.vol.toFixed(0)}%、最深回撤 ${Math.abs(s.mdd).toFixed(0)}%，波动幅度在样本里偏高` : '波动幅度偏大';
   }
   return { cls: w.v <= 45 ? 'bad' : 'warn', title: w.name + ' ' + w.v + ' 分', why };
 }
@@ -1308,8 +1312,8 @@ function verdictOf(it) {
   if (s) facts.push(`近一年价格分位 ${s.pos.toFixed(0)}%`);
   const lead = d.total >= 80 ? '综合分排在样本池前列'
     : d.total >= 65 ? '整体偏正面，但有一两项明显短板'
-      : d.total >= 50 ? '指标中规中矩，适合先放进观察池'
-        : '多项指标偏弱，不建议现在重仓';
+      : d.total >= 50 ? '指标中规中矩，没有明显偏向'
+        : '多项指标处在低位';
   return `${lead}：${parts.join('、')}。${facts.length ? '关键数据：' + facts.join('、') + '。' : ''}`;
 }
 
@@ -1326,46 +1330,39 @@ function adviceOf(it) {
   const d = it.diag;
   const s = d && d.stats;
   const q = it.quote;
-  let main;
-  const cheap = d.val !== null && d.val >= 72;
-  const pricey = d.val !== null && d.val <= 55;
-  const strong = d.trend !== null && d.trend >= 60;
-  const weak = d.trend !== null && d.trend <= 45;
+  const pe = q.pe, pb = q.pb, pos = s ? s.pos : null, r20 = s ? s.ret20 : null;
+  const above20 = s ? s.last > s.ma20 : null;
 
-  if (d.val === null || d.trend === null) {
-    main = '数据不全，先看行情和财报，别急着下结论。';
-  } else if (q.pe !== null && q.pe <= 0) {
-    main = '这家公司目前是亏损的，市盈率没有参考意义。亏损股的估值只能看 PB 和行业周期，风险比盈利公司大得多，别用「便宜」来说服自己。';
-  } else if (cheap && strong) {
-    main = '价格相对便宜，走势也已经转强，属于「又便宜又在涨」的组合。这种组合最容易让人上头，反而更要守住分批的纪律。';
-  } else if (cheap && weak) {
-    main = '便宜是真便宜，但还在往下走。便宜不等于马上涨，别急着把准备买它的钱一次花光。';
-  } else if (pricey && strong) {
-    main = '公司不差、走势也强，但价格已经把好消息反映得差不多了，现在追高性价比一般。';
-  } else if (pricey && weak) {
-    main = '又贵又弱，是最不划算的组合：估值没打折，趋势还在往下。';
-  } else if (strong) {
-    main = '走势偏强、估值中性。趋势能走多久没法预测，先想清楚自己能接受多大回撤。';
-  } else if (weak) {
-    main = '走势偏弱，估值也没明显便宜。先等它止跌，比现在动手更容易看清。';
+  let main;
+  if (!s || d.val === null || d.trend === null) {
+    main = '行情或财报有缺项，组合判断先不下。';
+  } else if (pe !== null && pe <= 0) {
+    main = `净利润为负，PE 显示「亏损」，估值只能看 PB ${f1(pb)} 倍。`;
   } else {
-    main = '不多不少的中性状态：没有明显便宜，也没有明显走坏。';
+    const bits = [`价格处在近一年区间的 ${pos.toFixed(0)}% 分位`];
+    if (pe !== null) bits.push(`PE ${f1(pe)} 倍`);
+    if (pb !== null) bits.push(`PB ${f1(pb)} 倍`);
+    bits.push(above20 ? '价格在 20 日均线上方' : '价格在 20 日均线下方');
+    if (r20 !== null) bits.push(`近 20 个交易日${r20 >= 0 ? '涨' : '跌'} ${Math.abs(r20).toFixed(1)}%`);
+    main = bits.join('，') + '。';
+    if (pos <= 30 && !above20) main += '<br>估值分位和趋势方向不一致：分位低，但还没止跌。';
+    else if (pos >= 70 && above20) main += '<br>估值分位和趋势同向：分位高，趋势也在上方。';
   }
 
   const vol = s ? s.vol : null;
-  const parts = vol === null ? 3 : vol >= 45 ? 5 : vol >= 30 ? 4 : 3;
+  const mdd = s ? Math.abs(s.mdd).toFixed(0) : null;
+  const parts = vol === null ? 4 : vol >= 45 ? 5 : vol >= 30 ? 4 : 3;
   const batch = vol === null
-    ? `把计划投入的钱分成 ${parts} 份，跌一段买一份，不要一次买完。`
-    : `近一年年化波动约 ${vol.toFixed(0)}%，把计划投入的钱分成 ${parts} 份，每跌 3%-5% 买一份，${vol >= 45 ? '这种波动下最忌一把梭' : '慢慢摊成本更舒服'}。`;
+    ? `没有波动数据，按常见做法把计划投入的钱分成 ${parts} 份，分开用。`
+    : `年化波动 ${vol.toFixed(0)}%，按常见做法把计划投入的钱分成 ${parts} 份，每跌 3%–5% 用一份。`;
 
-  const who = (q.pe !== null && q.pe <= 0)
-    ? '能接受公司还在亏钱、业绩随时可能反复的人；新手不建议碰亏损股。'
-    : vol === null ? '想长期持有的人。'
-      : vol >= 45 ? '能扛住单日 5% 以上波动、看得懂回撤的人。'
-        : vol >= 30 ? '能接受 20%-30% 回撤的中线投资者。'
-          : '不喜欢天天盯盘、更看重稳定的人。';
+  const who = vol === null
+    ? '没有波动和回撤数据，看不出这份波动对应多大的承受力。'
+    : vol >= 45 ? `年化波动 ${vol.toFixed(0)}%、近一年最大回撤 ${mdd}%，需要能承受这个幅度的人。`
+      : vol >= 30 ? `年化波动 ${vol.toFixed(0)}%、近一年最大回撤 ${mdd}%，需要能接受两三成回撤的人。`
+        : `年化波动 ${vol.toFixed(0)}%、近一年最大回撤 ${mdd}%，波动幅度在 A 股里偏低。`;
 
-  return { main, batch, who: who + (q.turnover !== null && q.turnover >= 6 ? '当前换手偏快，短线情绪浓，别被当天涨跌带着走。' : '') };
+  return { main, batch, who };
 }
 
 function defenseOf(it) {
@@ -1373,8 +1370,8 @@ function defenseOf(it) {
   const fin = it.fin;
   const out = [];
   if (s) {
-    out.push(`跌破 20 日均线（${f2(s.ma20)} 元）并且连着 3 天收不回来，说明短期趋势走坏。`);
-    out.push(`近一年最低 ${f2(s.low)} 元 是这轮的地板，跌破意味着支撑失守，要重新评估。`);
+    out.push(`跌破 20 日均线（${f2(s.ma20)} 元）并且连着 3 天收不回来，按均线口径属于短期走弱。`);
+    out.push(`近一年最低 ${f2(s.low)} 元 是这轮的地板，跌破后近一年区间的最低点会被改写。`);
   }
   if (fin && fin.netProfitYoY !== null) {
     out.push(`上期净利润同比 ${fin.netProfitYoY > 0 ? '+' : ''}${f1(fin.netProfitYoY)}%，下一份财报如果继续下滑甚至转负，说明生意在变差。`);
@@ -1407,18 +1404,18 @@ function oddsOf(it) {
 
 function baseConcl(d) {
   if (d.base === null) return '财报数据没拿到，这块先空着';
-  if (d.base >= 85) return '赚钱能力很强，财务结构也稳健';
-  if (d.base >= 70) return '生意不错，只有个别指标有瑕疵';
-  if (d.base >= 55) return '中规中矩，要看行业景气度';
-  return '赚钱能力或财务结构偏弱，要小心';
+  if (d.base >= 85) return 'ROE、负债率、现金流三项都在健康区间';
+  if (d.base >= 70) return '财务三项大体健康，个别指标偏弱';
+  if (d.base >= 55) return '财务三项都在中性水平';
+  return '财务三项里有明显偏弱的一项';
 }
 
 function valConcl(d) {
   if (d.val === null) return '行情估值字段缺失';
-  if (d.val >= 80) return '在样本池里算便宜的';
+  if (d.val >= 80) return 'PE、PB 在样本池里偏低';
   if (d.val >= 65) return '估值中性偏低';
   if (d.val >= 50) return '估值中性，谈不上便宜';
-  return '估值偏贵，价格已透支一部分预期';
+  return '估值偏高，PE、PB 在样本池上沿';
 }
 
 function trendConcl(it) {
@@ -1443,17 +1440,17 @@ function translationOf(it) {
     t += `，同期沪深300${idxRet >= 0 ? '涨' : '跌'}了 ${Math.abs(idxRet).toFixed(1)}%，${gap >= 0 ? '跑赢' : '跑输'}大盘 ${Math.abs(gap).toFixed(1)} 个百分点`;
   }
   t += `。现在价格处在近一年区间的 ${s.pos.toFixed(0)}% 位置（0% 是全年最低、100% 是全年最高），`;
-  t += s.pos >= 82 ? '已经贴近高位，追高的性价比在下降。' : s.pos <= 30 ? '在低位区域，但低位也说明市场暂时不看好它。' : '处在中间地带，往上往下都还有空间。';
+  t += s.pos >= 82 ? '属于偏高位置。' : s.pos <= 30 ? '属于偏低位置。' : '属于中间位置。';
   return t;
 }
 
 function divNote(divv, q) {
   if (!divv) return '分红数据暂不可用。';
-  if (!divv.count) return '最近 12 个月没有实施现金分红，股息率按 0 算。一般多见于把钱留着扩产的成长型公司。';
+  if (!divv.count) return '最近 12 个月没有实施现金分红，股息率按 0 算。未分红多见于把利润留存用于扩产的公司。';
   const y = divv.yieldPct;
   /* 水平判断已经在上面每格说过了，这里只留算法，不重复结论 */
   let t = `${f2(y)}% = 近 12 个月每股派现 ${f2(divv.dps)} 元 ÷ 现价 ${f2(q.price)} 元（税前口径）。`;
-  if (y >= 4) t += '这种高股息要留意是不是一次性大额派现撑起来的。';
+  if (y >= 4) t += '高股息可能来自一次性大额派现，需要对照分红明细确认。';
   return t;
 }
 
@@ -1483,51 +1480,51 @@ function gateHTML(code) {
  */
 function lvRoe(v) {
   if (v === null) return '';
-  if (v >= 20) return '很高，属于 A 股里最赚钱的那一档';
-  if (v >= 15) return '偏高，赚钱能力扎实';
-  if (v >= 10) return '中等，及格线上';
-  if (v >= 5) return '偏低，赚钱效率一般';
-  if (v >= 0) return '很低，几乎没给股东赚钱';
+  if (v >= 20) return '20% 以上，A 股最高一档';
+  if (v >= 15) return '15%–20%，偏上';
+  if (v >= 10) return '10%–15%，中等';
+  if (v >= 5) return '5%–10%，偏低';
+  if (v >= 0) return '0–5%，很低';
   return '负的，公司正在亏钱';
 }
 function lvEps(v) {
   if (v === null) return '';
-  if (v >= 2) return '每股一年赚 2 元以上，利润很厚';
-  if (v >= 1) return '每股 1 元以上，扎实';
-  if (v >= 0.3) return '一般水平';
-  if (v >= 0) return '很薄';
+  if (v >= 2) return '每股 2 元以上';
+  if (v >= 1) return '每股 1–2 元';
+  if (v >= 0.3) return '每股 0.3–1 元';
+  if (v >= 0) return '每股 0.3 元以下';
   return '每股在亏';
 }
 function lvMargin(v) {
   if (v === null) return '';
-  if (v >= 50) return '很高，产品有明显定价权';
-  if (v >= 35) return '偏高，护城河还在';
-  if (v >= 20) return '中等，制造业多是这个水平';
-  if (v >= 10) return '偏低，主要靠走量';
-  return '很薄，成本一涨就吃利润';
+  if (v >= 50) return '50% 以上，很高';
+  if (v >= 35) return '35%–50%，偏高';
+  if (v >= 20) return '20%–35%，制造业常见';
+  if (v >= 10) return '10%–20%，偏低';
+  return '10% 以下，很薄';
 }
 function lvNetMargin(v) {
   if (v === null) return '';
-  if (v >= 20) return '很高，每 100 元收入能落下 20 元以上';
-  if (v >= 10) return '不错';
-  if (v >= 5) return '一般，算是薄利';
-  if (v >= 0) return '很薄，几乎不剩下什么';
+  if (v >= 20) return '20% 以上，很高';
+  if (v >= 10) return '10%–20%，偏上';
+  if (v >= 5) return '5%–10%，一般';
+  if (v >= 0) return '5% 以下，很薄';
   return '负的，在亏';
 }
 function lvDebt(v) {
   if (v === null) return '';
-  if (v < 30) return '很低，基本靠自己扛，风险小';
-  if (v < 50) return '适中';
-  if (v < 65) return '偏高，借的钱不算少';
-  if (v < 80) return '很高，杠杆重，行业下行时更吃力';
-  return '极高，财务压力大';
+  if (v < 30) return '30% 以下，很低';
+  if (v < 50) return '30%–50%，适中';
+  if (v < 65) return '50%–65%，偏高';
+  if (v < 80) return '65%–80%，很高';
+  return '80% 以上，极高';
 }
 function lvCash(v) {
   if (v === null) return '';
-  if (v >= 1.5) return '每股一年收回 1.5 元以上现金，很实在';
-  if (v >= 0.5) return '还行，赚到的是真钱';
-  if (v >= 0) return '偏薄，利润没完全变成现金';
-  return '现金流是负的，钱在往外流，要警惕';
+  if (v >= 1.5) return '每股 1.5 元以上';
+  if (v >= 0.5) return '每股 0.5–1.5 元';
+  if (v >= 0) return '0–0.5 元，偏薄';
+  return '现金流为负';
 }
 function lvPE(v, loss) {
   if (loss) return '公司在亏钱，这个数用不上';
@@ -1535,8 +1532,8 @@ function lvPE(v, loss) {
   if (v < 10) return '不到 10 倍，比 A 股大多数股票便宜';
   if (v < 20) return '10–20 倍，A 股的中位区间';
   if (v < 30) return '20–30 倍，偏贵';
-  if (v < 50) return '30–50 倍，市场给的预期很高';
-  return '50 倍以上，非常贵，跌起来也快';
+  if (v < 50) return '30–50 倍，偏高';
+  return '50 倍以上，很高';
 }
 function lvPB(v) {
   if (v === null) return '';
@@ -1544,7 +1541,7 @@ function lvPB(v) {
   if (v < 2) return '1–2 倍，常见水平';
   if (v < 4) return '2–4 倍，偏高';
   if (v < 8) return '4–8 倍，明显高于账面';
-  return '8 倍以上，估值里装了很多预期';
+  return '8 倍以上，远高于账面净资产';
 }
 function lvPos(v) {
   if (v === null) return '';
@@ -1565,22 +1562,22 @@ function lvTurn(v) {
   if (v < 1) return '不到 1%，成交清淡，买卖都不热';
   if (v < 3) return '1–3%，正常水平';
   if (v < 10) return '3–10%，比较活跃';
-  return '超过 10%，换手过热，多半是短线资金';
+  return '超过 10%，换手很高';
 }
 function lvVR(v) {
   if (v === null) return '';
   if (v < 0.8) return '不到 1，今天比平时缩量';
   if (v < 1.5) return '1 附近，跟平时差不多';
   if (v < 2.5) return '比平时放量';
-  return '明显放量，有资金在动';
+  return '2.5 倍以上，明显放量';
 }
 function lvDiv(v) {
   if (v === null) return '';
   if (v <= 0) return '这一年没派过现金';
   if (v < 1) return '不到 1%，分红很少';
   if (v < 3) return '1–3%，中等';
-  if (v < 5) return '3–5%，现金回报不错';
-  return '5% 以上，很高，留神是不是一次性大额派现';
+  if (v < 5) return '3%–5%，偏高';
+  return '5% 以上，很高，需对照分红明细确认是否含一次性派现';
 }
 
 /* 折叠盒：次要指标默认收起，一屏只留最该看的几个数 */
@@ -1984,7 +1981,7 @@ const DICT = {
   pb: ['市净率 PB', '股价相对于每股净资产（公司账面上的家底）的倍数。低于 1 倍意味着市值比账面净资产还便宜。', '一套账面值 500 万的房子，你花 400 万买下，PB 就是 0.8 倍。'],
   pos: ['价格分位', '当前价格在过去一年最低价到最高价之间的位置。0% 是全年最低，100% 是全年最高。', '就像衡量今天气温在过去一年里的位置：处在 90% 分位，说明最近很少有这么热。'],
   cap: ['总市值', '市场给这家公司的总报价，等于股价乘以总股本。', '一家公司 10 亿股、每股 20 元，总市值就是 200 亿元。'],
-  vol: ['年化波动率', '把最近 60 个交易日的日涨跌幅度折算成一整年的波动幅度。数值越大，股价越颠簸。', '年化波动 50% 意味着一年里上下三成的起伏很正常，心脏不够强就别重仓。'],
+  vol: ['年化波动率', '把最近 60 个交易日的日涨跌幅度折算成一整年的波动幅度。数值越大，股价越颠簸。', '年化波动 50% 意味着一年里出现三成左右的上下起伏并不罕见。'],
   mdd: ['最大回撤', '过去一年里，从阶段最高点跌到最低点的最大跌幅。它衡量的是「最难受的时候有多难受」。', '一只股票从 100 元涨到 120 元又跌到 80 元，最大回撤就是 33%。'],
   odds: ['赔率', '向上空间和向下空间的比例。赔率 3 倍意味着潜在涨幅是潜在跌幅的 3 倍。', '向下最多亏 10%、向上可能赚 30%，赔率就是 3。'],
   turnover: ['换手率', '最近一个交易日成交的股数占流通股的百分比。换手率高说明这只股票买卖的人多、分歧大；换手率长期低于 1% 说明没人搭理，想卖可能卖不掉。', '一家公司流通 100 亿股，某一天成交 3 亿股，换手率就是 3%。'],
