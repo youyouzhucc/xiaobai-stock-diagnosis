@@ -1665,8 +1665,9 @@ function renderDetail(it) {
   ].map(([label, val, yoy]) => `
     <div class="report-row">
       <span>${label}</span>
-      <span><b>${val}</b>${yoy === null ? '' : `<span class="report-tag ${yoy > 0 ? 'good' : yoy < 0 ? 'bad' : 'mid'}">同比 ${yoy > 0 ? '+' : ''}${f1(yoy)}%</span>`}</span>
-    </div>`).join('') : '<div class="report-row"><span>财报数据暂不可用</span><span>—</span></div>';
+      <b>${val}</b>
+      ${yoy === null ? '<span></span>' : `<span class="report-tag ${yoy > 0 ? 'good' : yoy < 0 ? 'bad' : 'mid'}">同比 ${yoy > 0 ? '+' : ''}${f1(yoy)}%</span>`}
+    </div>`).join('') : '<div class="report-row"><span>财报数据暂不可用</span><b>—</b><span></span></div>';
 
   const def = s ? defenseOf(it) : [];
 
