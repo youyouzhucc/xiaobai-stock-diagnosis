@@ -536,7 +536,58 @@ body {
 
 /* ---------- 详情页 ---------- */
 /* 详情页：宽度跟随页面；宽屏分两栏（左=怎么做，右=数据面） */
-/* 单列阅读：内容居中限宽，一行别拉太长，不然眼睛要来回扫 */
+/* ---------- v40 详情页视觉收敛 ----------
+ * 目标：字号收成四档（18 / 15 / 13 / 11.5），颜色收成三种（绿=好、红=差、灰=中性），
+ * 去掉一格一格的浅底色块，让页面「白 + 一条细线」，数字用条形图代替。
+ */
+#detail-view .kv {
+    background: none; border-radius: 0; padding: 11px 0 0;
+    border-top: 1px solid var(--line);
+}
+#detail-view .kv-grid { gap: 10px 20px; }
+#detail-view .kv-label { font-size: 11.5px; color: var(--text-sub); }
+#detail-view .kv-val { font-size: 18px; }
+#detail-view .kv-desc { font-size: 11.5px; color: var(--text-sub); line-height: 1.55; }
+#detail-view .st-note { font-size: 11.5px; }
+#detail-view .d-band { padding: 12px 16px; }
+#detail-view .d-band-t { font-size: 13px; }
+#detail-view .d-band-note { font-size: 12px; line-height: 1.7; }
+#detail-view .tag { font-size: 11.5px; }
+
+/* 体检分项：四根横条，短的那根一眼就能看到 */
+.bars { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.bars-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 9px; }
+.bars-head b { font-size: 12px; font-weight: 700; letter-spacing: .2px; color: var(--text-sub); }
+.bars-head span { font-size: 11.5px; color: var(--text-weak); font-variant-numeric: tabular-nums; }
+.bars-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.bars-name { width: 62px; flex: none; font-size: 12px; color: var(--text-sub); }
+.bars-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px 40px; }
+@media (max-width: 880px) { .bars-grid { grid-template-columns: 1fr; } }
+.bars-track { flex: 1 1 auto; height: 6px; border-radius: 3px; background: #ECE9E3; overflow: hidden; }
+.bars-track > i { display: block; height: 100%; border-radius: 3px; background: #9AAFA4; transition: width .4s ease; }
+.bars-track > i.weak { background: #C08A8A; }
+.bars-val { width: 22px; flex: none; text-align: right; font-size: 12px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.bars-word { width: 42px; flex: none; font-size: 11.5px; font-weight: 600; }
+.bars-word.good { color: var(--green); }
+.bars-word.bad { color: var(--red); }
+.bars-word.mid { color: var(--text-weak); }
+
+/* 价格分位：一条横轨道 + 当前位置指针 */
+.posbar { margin-top: 14px; }
+.posbar-track { position: relative; height: 8px; border-radius: 4px; background: #ECE9E3; }
+.posbar-track > i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 4px; background: #A9BDB2; }
+.posbar-track > b {
+    position: absolute; top: 50%; width: 3px; height: 15px; margin: -7.5px 0 0 -1.5px;
+    border-radius: 2px; background: var(--text);
+}
+.posbar-scale { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--text-weak); }
+
+/* 盈亏比例条：跌多少、涨多少，长度直接对比 */
+.odds-ratio { display: flex; height: 7px; border-radius: 4px; overflow: hidden; margin-top: 14px; background: #ECE9E3; }
+.odds-ratio i { display: block; height: 100%; }
+.odds-ratio .r-down { background: #C08A8A; }
+.odds-ratio .r-up { background: #9AAFA4; }
+.odds-caption { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; color: var(--text-weak); }
 #detail-view { max-width: 1100px; margin: 0 auto; }
 /* 详情页指标一格大约是正文宽度的一半，宽屏下排三列刚好填满 */
 #detail-view .kv-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -1600,7 +1600,6 @@ function renderDetail(it) {
     : '财报数据暂不可用（接口超时或该股暂无数据）';
 
   /* 顶部三个标签：先给一句人话结论，具体数字放到下面模块里 */
-  const L3 = (name, o) => `<span class="d-tag ${o.c}"><b>${esc(name)}</b>${esc(o.t)}</span>`;
   const baseTag = v => (v === null || v === undefined) ? { t: '数据缺', c: 'mid' }
     : v >= 85 ? { t: '扎实', c: 'good' }
       : v >= 70 ? { t: '还行', c: 'good' }
@@ -1616,9 +1615,31 @@ function renderDetail(it) {
       : s.last > s.ma20 ? { t: '刚转强', c: 'mid' }
         : s.ma20 > s.ma60 ? { t: '回调中', c: 'mid' }
           : { t: '偏弱', c: 'bad' };
+  const riskTag = v => (v === null || v === undefined) ? { t: '数据缺', c: 'mid' }
+    : v >= 75 ? { t: '波动小', c: 'good' }
+      : v >= 55 ? { t: '一般', c: 'mid' }
+        : { t: '偏大', c: 'bad' };
+
+  /* 四根横条顶替原来的一排标签和分数块：谁短谁长，一眼看到 */
+  const dims = [
+    ['公司底子', d.base, baseTag(d.base)],
+    ['估值水平', d.val, valTag(d.val)],
+    ['近期趋势', d.trend, trendTag],
+    ['风险', d.risk, riskTag(d.risk)]
+  ];
+  const nums = dims.filter(x => typeof x[1] === 'number');
+  const minV = nums.length ? Math.min.apply(null, nums.map(x => x[1])) : null;
+  const barsHTML = `<div class="bars">
+    <div class="bars-head"><b>体检分项</b><span>${enough ? '四项加权 ' + d.total + ' 分' : '数据不足，不出总分'}</span></div>
+    <div class="bars-grid">${dims.map(([n, v, o]) => `<div class="bars-row">
+      <span class="bars-name">${n}</span>
+      <div class="bars-track"><i class="${(typeof v === 'number' && nums.length > 1 && v === minV) ? 'weak' : ''}" style="width:${typeof v === 'number' ? Math.max(0, Math.min(100, v)) : 0}%"></i></div>
+      <span class="bars-val">${typeof v === 'number' ? v : '—'}</span>
+      <span class="bars-word ${o.c}">${o.t}</span>
+    </div>`).join('')}</div>
+  </div>`;
 
   const bandCls = w ? w.cls : hp.cls;
-  const scoreBg = bandCls === 'bad' ? 'var(--red)' : bandCls === 'warn' ? 'var(--orange)' : bandCls === 'good' ? 'var(--green)' : '#A9A39A';
 
   /* 公司底子：主栏放 ROE、负债结构、经营现金流三项（正好铺满一行），毛利率收进折叠 */
   const roeItem = { label: ['ROE', 'roe'], value: fin && fin.roe !== null ? f1(fin.roe) + '%' : '—', desc: fin ? lvRoe(fin.roe) : '' };
@@ -1667,39 +1688,38 @@ function renderDetail(it) {
       <span class="d-rank" id="d-rank">全市场排名加载中…</span>
     </div>
 
-    <div class="d-tags">
-      ${L3('公司底子', baseTag(d.base))}
-      ${L3('估值水平', valTag(d.val))}
-      ${L3('近期趋势', trendTag)}
-    </div>
+    ${barsHTML}
 
     <div class="d-band ${bandCls}">
       <div class="d-band-main">
         ${w ? `<div class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span></div>` : ''}
         <div class="d-band-note">${enough ? scoreLine(d) : '行情或财报缺的项太多，能用的不到三项，就不硬凑一个总分了——数据不够时给分，比不给更容易误导。'}</div>
       </div>
-      <div class="d-band-score" style="background:${scoreBg}">${enough ? d.total : '—'}<small>分</small></div>
     </div>
 
     ${gateHTML(q.code)}
   </div>
 
   <div class="card">
-    ${UI.title('公司底子', baseConcl(d), (d.base === null || d.base === undefined) ? '—' : d.base + '/100')}
+    ${UI.title('公司底子', baseConcl(d))}
     ${fin ? UI.kvGrid([roeItem, debtItem, cashItem]) + moreBox('展开看：' + (d.financial ? '每股收益' : '毛利率'), baseExtra)
     : `<div class="kv" style="grid-column:1/-1"><div class="kv-label">财务数据</div><div class="kv-val" style="font-size:15px">暂不可用</div><div class="kv-desc">接口没有返回这只股票的财报，底子这一项不参与综合评分</div></div>`}
     <div class="st-note">${finNote}${d.financial ? ' · 金融业不评资产负债率' : ''}</div>
   </div>
 
   <div class="card">
-    ${UI.title('估值水平', valConcl(d), (d.val === null || d.val === undefined) ? '—' : d.val + '/100')}
+    ${UI.title('估值水平', valConcl(d))}
     ${UI.kvGrid([peItem, pbItem, posItem])}
+    ${s ? `<div class="posbar">
+      <div class="posbar-track"><i style="width:${Math.max(0, Math.min(100, s.pos))}%"></i><b style="left:${Math.max(0, Math.min(100, s.pos))}%"></b></div>
+      <div class="posbar-scale"><span>一年最低</span><span>当前 ${s.pos.toFixed(0)}%</span><span>一年最高</span></div>
+    </div>` : ''}
     ${moreBox('展开看：总市值', UI.kvGrid([capItem]))}
     <div class="st-note">PE 取滚动市盈率（TTM），亏损公司按「亏损」显示、不参与打分。估值按上一交易日收盘价算，盘中不重算，涨跌幅度大时 PE、PB 会有一点滞后。</div>
   </div>
 
   <div class="card">
-    ${UI.title('近期趋势', trendConcl(it), (d.trend === null || d.trend === undefined) ? '—' : d.trend + '/100')}
+    ${UI.title('近期趋势', trendConcl(it))}
     <div class="tags" style="margin-bottom:12px">
       ${s ? `<span class="tag ${s.last > s.ma20 ? 'good' : 'warn'}">${s.last > s.ma20 ? '站上 20 日均线' : '压在 20 日均线下方'}</span>
       <span class="tag ${s.ma20 > s.ma60 ? 'good' : 'warn'}">${s.ma20 > s.ma60 ? '20 日线在 60 日线上方' : '20 日线在 60 日线下方'}</span>
@@ -1741,6 +1761,14 @@ function renderDetail(it) {
         <div class="odds-sub">天花板 ${odds ? f2(odds.high) + ' 元 · ' + String(odds.highDate || '').slice(5) : '—'}</div>
       </div>
     </div>
+    ${(odds && odds.down < 0 && odds.up > 0) ? (() => {
+      const dn = Math.abs(odds.down), uu = Math.max(odds.up, 0), tot = dn + uu;
+      return `<div class="odds-ratio">
+        <i class="r-down" style="width:${(dn / tot * 100).toFixed(1)}%"></i>
+        <i class="r-up" style="width:${(uu / tot * 100).toFixed(1)}%"></i>
+      </div>
+      <div class="odds-caption"><span>跌 ${dn.toFixed(0)}%</span><span>涨 ${uu.toFixed(0)}%</span></div>`;
+    })() : ''}
   </div>
 
   <div class="card">
