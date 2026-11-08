@@ -255,7 +255,9 @@ const KNOW = {
 
 function openKnow(key) {
   closeKnow();
-  const k = KNOW[key];
+  const k = KNOW[key] || (DICT[key]
+    ? { t: DICT[key][0], body: `<p>${DICT[key][1]}</p><div class="pop-case">${DICT[key][2]}</div>` }
+    : null);
   if (!k) return;
   /* 分数这一条要把当前这只票的四项得分一起带出来，不然光看档位没意义 */
   let body = k.body;
@@ -1335,7 +1337,7 @@ function adviceOf(it) {
   } else if (q.pe !== null && q.pe <= 0) {
     main = '这家公司目前是亏损的，市盈率没有参考意义。亏损股的估值只能看 PB 和行业周期，风险比盈利公司大得多，别用「便宜」来说服自己。';
   } else if (cheap && strong) {
-    main = '价格相对便宜，走势也已经转强，属于「又便宜又在涨」的组合。可以正常参与，但仍建议分批，不要一次打满。';
+    main = '价格相对便宜，走势也已经转强，属于「又便宜又在涨」的组合。这种组合最容易让人上头，反而更要守住分批的纪律。';
   } else if (cheap && weak) {
     main = '便宜是真便宜，但还在往下走。便宜不等于马上涨，别急着把准备买它的钱一次花光。';
   } else if (pricey && strong) {
@@ -1343,11 +1345,11 @@ function adviceOf(it) {
   } else if (pricey && weak) {
     main = '又贵又弱，是最不划算的组合：估值没打折，趋势还在往下。';
   } else if (strong) {
-    main = '走势偏强、估值中性。顺着趋势做，但要给自己留好回撤空间。';
+    main = '走势偏强、估值中性。趋势能走多久没法预测，先想清楚自己能接受多大回撤。';
   } else if (weak) {
-    main = '走势偏弱，估值也没明显便宜。等它自己先止跌，会比现在出手更稳妥。';
+    main = '走势偏弱，估值也没明显便宜。先等它止跌，比现在动手更容易看清。';
   } else {
-    main = '不多不少的中性状态：既能拿，也没到必须抢的时候。';
+    main = '不多不少的中性状态：没有明显便宜，也没有明显走坏。';
   }
 
   const vol = s ? s.vol : null;
@@ -1591,7 +1593,7 @@ function renderDetail(it) {
   const s = d.stats || null;
   const fin = it.fin;
   const divv = it.dividend;
-  const odds = oddsOf(it);
+  const adv = adviceOf(it);
   const w = weakestOf(it);
   const hp = healthOf(d.total);
   const enough = typeof d.total === 'number';
@@ -1695,33 +1697,19 @@ function renderDetail(it) {
 
     <div class="d-band ${bandCls}">
       <div class="d-band-main">
-        ${w ? `<details class="d-exp">
-          <summary class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span><span class="d-q">?</span></summary>
-          <div class="d-exbody">${enough ? scoreLine(d) : '行情或财报缺的项太多，能用的不到三项，就不硬凑一个总分了。'}</div>
-        </details>` : ''}
+        ${w ? `<div class="d-band-t">${w.cls === 'bad' ? '❌ 核心风险' : w.cls === 'good' ? '✅ 四项都过线' : '⚠ 最大短板'}：${w.title}<span class="d-band-w">${w.why}</span><button class="q-btn" type="button" data-know="score" aria-label="这个分数怎么算的">?</button></div>` : ''}
       </div>
     </div>
 
     ${gateHTML(q.code)}
-  </div>
 
-  <div class="grid2">
-  <div class="card">
-    ${UI.title('公司底子', baseConcl(d))}
-    ${fin ? UI.kvGrid([roeItem, debtItem, cashItem]) + moreBox('展开看：' + (d.financial ? '每股收益' : '毛利率'), baseExtra)
-    : `<div class="kv" style="grid-column:1/-1"><div class="kv-label">财务数据</div><div class="kv-val" style="font-size:15px">暂不可用</div><div class="kv-desc">接口没有返回这只股票的财报，底子这一项不参与综合评分</div></div>`}
-    <div class="st-note">${finNote}${d.financial ? ' · 金融业不评资产负债率' : ''}</div>
-  </div>
-
-  <div class="card">
-    ${UI.title('估值水平', valConcl(d))}
-    ${UI.kvGrid([peItem, pbItem, posItem])}
-    ${s ? `<div class="posbar">
-      <div class="posbar-track"><i style="width:${Math.max(0, Math.min(100, s.pos))}%"></i><b style="left:${Math.max(0, Math.min(100, s.pos))}%"></b></div>
-      <div class="posbar-scale"><span>一年最低</span><span>当前 ${s.pos.toFixed(0)}%</span><span>一年最高</span></div>
-    </div>` : ''}
-    ${moreBox('展开看：总市值', UI.kvGrid([capItem]))}
-    <div class="st-note">PE 取滚动市盈率（TTM），亏损公司按「亏损」显示、不参与打分。估值按上一交易日收盘价算，盘中不重算，涨跌幅度大时 PE、PB 会有一点滞后。</div>
+    <div class="advice-h">这份数据怎么用</div>
+    <div class="advice">
+      <div class="advice-row"><span class="advice-k">一句话</span><span class="advice-v">${adv.main}</span></div>
+      <div class="advice-row"><span class="advice-k">分批节奏</span><span class="advice-v">${adv.batch}</span></div>
+      <div class="advice-row"><span class="advice-k">适合人群</span><span class="advice-v">${adv.who}</span></div>
+      <div class="advice-note">以上是按数据口径写的一句说明，不是买卖建议。</div>
+    </div>
   </div>
 
   <div class="card">
@@ -1749,32 +1737,23 @@ function renderDetail(it) {
     ${def.length ? moreBox('什么情况算看错了', def.map((t, i) => `<div class="bullet"><span class="dot ${i === 0 ? 'g' : i === 1 ? 'r' : 'b'}"></span><span>${t}</span></div>`).join('')) : ''}
   </div>
 
+  <div class="grid2">
   <div class="card">
-    <div class="section-title">
-      <span class="st-name">盈亏空间测算</span>
-      ${odds && odds.odds !== null ? `<span class="st-odds">赔率 ${odds.odds.toFixed(1)}</span>` : ''}
-      <span class="st-inline-note">${odds ? esc(odds.note) : '缺少历史 K 线，算不出空间。'}</span>
-    </div>
-    <div class="odds">
-      <div class="odds-down">
-        <div class="odds-label">最多亏</div>
-        <div class="odds-val">${odds ? odds.down.toFixed(0) + '%' : '—'}</div>
-        <div class="odds-sub">地板 ${odds ? f2(odds.low) + ' 元 · ' + String(odds.lowDate || '').slice(5) : '—'}</div>
-      </div>
-      <div class="odds-up">
-        <div class="odds-label">最多赚</div>
-        <div class="odds-val">${odds ? '+' + odds.up.toFixed(0) + '%' : '—'}</div>
-        <div class="odds-sub">天花板 ${odds ? f2(odds.high) + ' 元 · ' + String(odds.highDate || '').slice(5) : '—'}</div>
-      </div>
-    </div>
-    ${(odds && odds.down < 0 && odds.up > 0) ? (() => {
-      const dn = Math.abs(odds.down), uu = Math.max(odds.up, 0), tot = dn + uu;
-      return `<div class="odds-ratio">
-        <i class="r-down" style="width:${(dn / tot * 100).toFixed(1)}%"></i>
-        <i class="r-up" style="width:${(uu / tot * 100).toFixed(1)}%"></i>
-      </div>
-      <div class="odds-caption"><span>跌 ${dn.toFixed(0)}%</span><span>涨 ${uu.toFixed(0)}%</span></div>`;
-    })() : ''}
+    ${UI.title('公司底子', baseConcl(d))}
+    ${fin ? UI.kvGrid([roeItem, debtItem, cashItem]) + moreBox('展开看：' + (d.financial ? '每股收益' : '毛利率'), baseExtra)
+    : `<div class="kv" style="grid-column:1/-1"><div class="kv-label">财务数据</div><div class="kv-val" style="font-size:15px">暂不可用</div><div class="kv-desc">接口没有返回这只股票的财报，底子这一项不参与综合评分</div></div>`}
+    <div class="st-note">${finNote}${d.financial ? ' · 金融业不评资产负债率' : ''}</div>
+  </div>
+
+  <div class="card">
+    ${UI.title('估值水平', valConcl(d))}
+    ${UI.kvGrid([peItem, pbItem, posItem])}
+    ${s ? `<div class="posbar">
+      <div class="posbar-track"><i style="width:${Math.max(0, Math.min(100, s.pos))}%"></i><b style="left:${Math.max(0, Math.min(100, s.pos))}%"></b></div>
+      <div class="posbar-scale"><span>一年最低</span><span>当前 ${s.pos.toFixed(0)}%</span><span>一年最高</span></div>
+    </div>` : ''}
+    ${moreBox('展开看：总市值', UI.kvGrid([capItem]))}
+    <div class="st-note">PE 取滚动市盈率（TTM），亏损公司按「亏损」显示、不参与打分。估值按上一交易日收盘价算，盘中不重算，涨跌幅度大时 PE、PB 会有一点滞后。</div>
   </div>
 
   <div class="card">

@@ -1090,3 +1090,34 @@ body {
 .d-exp > summary::marker { content: ''; }
 .d-exp[open] .d-q { background: var(--text); color: #fff; border-color: var(--text); }
 .d-exbody { display: block; }
+
+/* ---------- v44 详情页：等高两列 + 统一问号 + 建议并入首块 ---------- */
+/* 指标名和问号排在一起：文字贴左轴，问号紧跟，垂直居中 */
+#detail-view .kv-term { display: inline-flex; align-items: center; gap: 6px; }
+#detail-view .kv-term .q-btn { transform: translateY(-1px); }
+
+/* 结论行的问号也用首页那一颗 */
+#detail-view .d-band-t { display: flex; align-items: center; flex-wrap: wrap; column-gap: 4px; }
+#detail-view .d-band-t .q-btn { margin-left: 6px; }
+
+/* 一行的两张卡强制等高 */
+#detail-view .grid2 { align-items: stretch; }
+
+/* 名称列要放得下「每股经营现金流」+ 问号 */
+#detail-view .kv, #detail-view .report-row { grid-template-columns: 120px 112px minmax(0, 1fr); }
+
+/* 趋势单独占一行，图给足高度 */
+#detail-view #trendChart { height: 240px; }
+#detail-view .chart-empty { height: 240px; }
+
+/* 「这份数据怎么用」：并进第一块，跟在体检结论后面 */
+#detail-view .advice-h {
+    margin-top: 16px; padding-top: 14px;
+    border-top: 1px solid rgba(0, 0, 0, .07);
+    font-size: 13px; font-weight: 600; color: var(--text);
+}
+#detail-view .advice { display: grid; gap: 9px; margin-top: 10px; }
+#detail-view .advice-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; align-items: baseline; }
+#detail-view .advice-k { font-size: 12.5px; color: var(--text-sub); }
+#detail-view .advice-v { font-size: 13px; line-height: 1.75; color: var(--text); }
+#detail-view .advice-note { font-size: 11.5px; color: var(--text-sub); opacity: .8; }

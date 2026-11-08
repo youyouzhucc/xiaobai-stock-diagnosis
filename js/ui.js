@@ -45,7 +45,7 @@ const UI = (() => {
    */
   function kv(o) {
     const lab = Array.isArray(o.label)
-      ? `<span class="term" data-term="${esc(o.label[1])}">${esc(o.label[0])}</span>`
+      ? `<span class="kv-term"><span>${esc(o.label[0])}</span><button class="q-btn" type="button" data-know="${esc(o.label[1])}" aria-label="解释">?</button></span>`
       : esc(o.label);
     return `<div class="kv">
       <div class="kv-label">${lab}</div>
