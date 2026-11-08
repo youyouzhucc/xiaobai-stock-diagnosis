@@ -387,8 +387,6 @@ body {
     border-top: 1px solid var(--line); font-size: 13px; cursor: pointer;
 }
 .perm-row input { width: 15px; height: 15px; accent-color: var(--green); cursor: pointer; }
-/* 第三条「两个都没开通」：是兜底选项，不跟上面两条抢位置 */
-.perm-row.perm-none { border-top: 1px dashed var(--line); color: var(--text-sub); font-size: 12.5px; }
 .perm-tip {
     font-size: 11px; color: var(--text-weak); line-height: 1.6; margin-top: 10px;
     padding-top: 9px; border-top: 1px solid var(--line);

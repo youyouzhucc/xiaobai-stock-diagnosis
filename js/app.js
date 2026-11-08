@@ -734,8 +734,7 @@ function openPerm(auto) {
     <div class="perm-d">勾上你券商里已经开通的板块。设好之后，筛选里的「只看我能买的」会把买不了的票滤掉。这些只存在你自己的浏览器里，不会上传。</div>
     <label class="perm-row"><input type="checkbox" data-k="gem"${p.gem ? ' checked' : ''}> 已开通创业板（10 万 / 2 年）</label>
     <label class="perm-row"><input type="checkbox" data-k="star"${p.star ? ' checked' : ''}> 已开通科创板（50 万 / 2 年）</label>
-    <label class="perm-row perm-none"><input type="checkbox" data-k="none"${noBoard ? ' checked' : ''}> 我两个都没开通，只买主板</label>
-    <div class="perm-tip">不确定开没开？打开券商 App →「我的」→ 业务办理里搜「创业板」「科创板」，搜得到就是还没开。</div>
+    <label class="perm-row perm-none"><input type="checkbox" data-k="none"${noBoard ? ' checked' : ''}> 我两个都没开通，只买主板</label>    <div class="perm-tip">不确定开没开？打开券商 App →「我的」→ 业务办理里搜「创业板」「科创板」，搜得到就是还没开。</div>
     <button class="perm-ok" onclick="App.applyPerm()">保存</button>
   </div>`;
   /* 三条互斥：勾「都没开通」就清掉上面两个，勾上面任一个就取消它 */
@@ -1242,18 +1241,18 @@ function healthOf(total) {
 
 function scoreLine(d) {
   if (!d || d.total === null) return '行情或财报还没拉全，分数先空着——没数据就不编分。';
+  /* 项名跟下面几个模块的标题完全一致，别自己另起一套叫法 */
   const dims = [
-    ['底子', d.base, 40],
-    ['估值', d.val, 30],
-    ['趋势', d.trend, 20],
+    ['公司底子', d.base, 40],
+    ['估值水平', d.val, 30],
+    ['近期趋势', d.trend, 20],
     ['风险', d.risk, 10]
   ].filter(x => x[1] !== null);
   const wsum = dims.reduce((a, b) => a + b[2], 0);
-  /* 某项缺数据时权重会重分，所以百分比按剩下的项换算 */
   const rule = dims.map(([n, , w]) => `${n}×${Math.round(w * 100 / wsum)}%`).join(' + ');
-  return `怎么算的：${rule} 相加得 ${d.total} 分（某项缺数据时权重自动重分）。`
-    + `底子＝赚钱和财务稳不稳，估值＝贵不贵，趋势＝最近往哪走，风险＝波动和最大回撤。`
-    + `分高只说明没明显硬伤，不代表会涨。`;
+  return `计算公式：${rule}，相加得 ${d.total} 分。某一项数据缺了，权重会按剩下的项重新分配。`
+    + '<br>'
+    + `公司底子＝赚钱和财务稳不稳，估值水平＝现在贵不贵，近期趋势＝最近往哪走，风险＝波动多大、跌得最狠有多深。分高只说明没明显硬伤，不代表会涨。`;
 }
 
 /* 最大的那个短板：不管总分多少，先把最扎人的一条摆到最上面 */
