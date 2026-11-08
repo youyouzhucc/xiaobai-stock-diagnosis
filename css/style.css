@@ -856,3 +856,149 @@ body {
     .kv-grid { grid-template-columns: 1fr 1fr; gap: 7px; }
     .kv-val { font-size: 17px; }
 }
+
+/* ---------- v41 苹果式排版 ----------
+ * 一条原则：所有数字进同一列，分组只靠 1px 细线，不再用底色块。
+ * 左轴（名称）固定 132px，值列固定 112px 右对齐，说明列吃剩下的宽度。
+ */
+#detail-view .card { padding: 22px 26px; border-radius: 14px; box-shadow: none; }
+#detail-view .card + .card { margin-top: 14px; }
+
+#detail-view .section-title { margin-bottom: 12px; gap: 10px; }
+#detail-view .st-name { font-size: 17px; font-weight: 600; letter-spacing: -.2px; }
+#detail-view .st-concl { font-size: 13px; font-weight: 400; color: var(--text-sub); }
+
+/* 指标行：名称 / 值 / 说明，一格一行，细线分隔 */
+#detail-view .kv-grid { display: block; }
+#detail-view .kv {
+    display: grid;
+    grid-template-columns: 132px 90px minmax(0, 1fr);
+    align-items: baseline; gap: 0 22px;
+    padding: 15px 0;
+    background: none; border: 0; border-radius: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, .07);
+}
+#detail-view .kv-grid > .kv:first-child { border-top: 1px solid rgba(0, 0, 0, .07); }
+#detail-view .kv-grid > .kv:last-child { border-bottom: 0; }
+#detail-view .kv-label { font-size: 12.5px; color: var(--text-sub); }
+#detail-view .kv-val {
+    font-size: 21px; font-weight: 600; letter-spacing: -.4px; margin: 0;
+    text-align: right; font-variant-numeric: tabular-nums;
+}
+#detail-view .kv-desc { font-size: 12.5px; color: var(--text-sub); line-height: 1.55; }
+
+/* 财报同构：名称 / 数值 / 同比 */
+#detail-view .report-list { display: block; }
+#detail-view .report-row {
+    display: grid;
+    grid-template-columns: 132px 90px minmax(0, 1fr);
+    gap: 0 22px; align-items: baseline;
+    padding: 15px 0; border-bottom: 1px solid rgba(0, 0, 0, .07);
+    font-size: 12.5px; color: var(--text-sub);
+}
+#detail-view .report-row:first-child { border-top: 1px solid rgba(0, 0, 0, .07); }
+#detail-view .report-row:last-child { border-bottom: 0; padding-bottom: 15px; }
+#detail-view .report-row b {
+    font-size: 21px; font-weight: 600; letter-spacing: -.4px; color: var(--text);
+    text-align: right; font-variant-numeric: tabular-nums;
+}
+
+/* 体检分项：也归到同一条左轴，一列四行 */
+#detail-view .bars-grid { grid-template-columns: 1fr; gap: 0; }
+#detail-view .bars-name { width: 132px; font-size: 12.5px; }
+#detail-view .bars-track { max-width: 300px; }
+#detail-view .bars-val { width: 34px; font-size: 13px; }
+#detail-view .bars-word { width: 48px; }
+#detail-view .bars-row { padding: 6px 0; }
+#detail-view .bars-head b { color: var(--text-sub); font-weight: 600; }
+
+/* 标签：无底色，改成色点 + 文字 */
+#detail-view .tag {
+    background: none; border: 0; border-radius: 0; padding: 0 0 0 11px;
+    position: relative; font-size: 12.5px; font-weight: 400;
+}
+#detail-view .tag::before {
+    content: ''; position: absolute; left: 0; top: 50%; width: 5px; height: 5px;
+    margin-top: -2.5px; border-radius: 50%; background: currentColor;
+}
+
+/* 短板提示：无底色，改成左侧一根竖线 */
+#detail-view .d-band {
+    background: none; border-radius: 0; padding: 2px 0 2px 14px;
+    border-left: 3px solid var(--red); margin-top: 18px;
+}
+#detail-view .d-band.good { border-left-color: var(--green); }
+#detail-view .d-band.warn { border-left-color: var(--orange); }
+#detail-view .d-band.mid  { border-left-color: var(--line-strong); }
+
+/* 盈亏：去掉两块色卡，两个大数字并排，中间一条细竖线 */
+#detail-view .odds {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-top: 1px solid rgba(0, 0, 0, .07); margin-top: 4px;
+}
+#detail-view .odds-down, #detail-view .odds-up {
+    background: none; border: 0; border-radius: 0; padding: 16px 0 2px;
+}
+#detail-view .odds-up { border-left: 1px solid rgba(0, 0, 0, .07); padding-left: 28px; }
+#detail-view .odds-label { font-size: 12.5px; font-weight: 400; margin-bottom: 3px; }
+#detail-view .odds-val {
+    font-size: 23px; font-weight: 600; letter-spacing: -.5px;
+    font-variant-numeric: tabular-nums;
+}
+#detail-view .odds-sub { font-size: 12.5px; color: var(--text-sub); margin-top: 5px; }
+
+/* v41 补充：所有小胶囊一起去掉底色，只留文字与细问号 */
+#detail-view .term {
+    background: none; padding: 0; border-radius: 0;
+    color: var(--text-sub); font-weight: 400; font-size: 12.5px;
+}
+#detail-view .term:hover { background: none; color: var(--text); }
+#detail-view .term::after {
+    content: '?'; width: 11px; height: 11px; line-height: 9px;
+    background: none; color: var(--text-weak); border-radius: 50%;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .16); font-size: 9px;
+}
+#detail-view .d-rank {
+    background: none; padding: 0; border-radius: 0; font-size: 12px; color: var(--text-weak);
+}
+#detail-view .st-odds { font-size: 13px; color: var(--text-sub); font-weight: 400; }
+
+/* v41 补充 2：把最后几处残留的块也去了 */
+#detail-view .st-odds {
+    background: none; padding: 0; border-radius: 0;
+    font-size: 13px; font-weight: 400; color: var(--text-sub);
+}
+#detail-view .chart-note {
+    background: none; border-radius: 0; padding: 14px 0 0;
+    border-top: 1px solid rgba(0, 0, 0, .07);
+    font-size: 13px; font-weight: 400; color: var(--text);
+}
+#detail-view .tag { color: var(--text-sub); }
+#detail-view .tag.good { color: var(--green); }
+#detail-view .tag.bad { color: var(--red); }
+#detail-view .tags { gap: 14px; }
+#detail-view .odds-down, #detail-view .odds-up { text-align: left; }
+/* 涨跌配色跟大盘页面保持一致：跌绿、涨红 */
+#detail-view .odds-ratio .r-down { background: #9AB3A6; }
+#detail-view .odds-ratio .r-up { background: #C09090; }
+
+/* 财报同比标签：同样不用底色 */
+#detail-view .report-tag {
+    background: none; padding: 0; border-radius: 0; margin-left: 0;
+    font-size: 12.5px; font-weight: 400;
+}
+#detail-view .report-tag.good { color: var(--green); }
+#detail-view .report-tag.bad { color: var(--red); }
+
+/* 财报：名称 / 数值 / 同比 一行读完，名称仍对齐左侧 132px 那条轴 */
+#detail-view .report-list { display: block; }
+#detail-view .report-row {
+    display: flex; align-items: baseline; gap: 18px;
+    padding: 14px 0; border-bottom: 1px solid rgba(0, 0, 0, .07);
+    font-size: 12.5px; color: var(--text-sub); justify-content: flex-start;
+}
+#detail-view .report-row > span:first-child { width: 132px; flex: none; }
+#detail-view .report-row b {
+    font-size: 17px; font-weight: 600; letter-spacing: -.3px; color: var(--text);
+    font-variant-numeric: tabular-nums; text-align: left;
+}
