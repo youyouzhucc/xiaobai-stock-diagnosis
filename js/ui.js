@@ -111,6 +111,15 @@ const UI = (() => {
     return !b || !!perms()[b.key];
   }
 
+  /* 「设置过」和「一个都没开通」是两件事：前者决定要不要提示用户去设，
+     后者只是勾了「两个都没开通」。所以单独存一个标记。 */
+  function asked() {
+    try { return localStorage.getItem('xb.asked') === '1'; } catch (e) { return false; }
+  }
+  function setAsked() {
+    try { localStorage.setItem('xb.asked', '1'); } catch (e) { /* 忽略 */ }
+  }
+
   /* 卡片上的板块徽章：文字只写板块名（全站统一），需要在哪开通靠悬浮提示和详情页说明 */
   function badge(code) {
     const b = boardOf(code);
@@ -120,5 +129,5 @@ const UI = (() => {
     return `<i class="bd ${b.key}${on ? ' on' : ''}" title="${esc(tip)}">${b.name}</i>`;
   }
 
-  return { esc, f1, f2, pct, cap, dirCls, card, title, kv, kvGrid, bar, tag, empty, BOARDS, boardOf, perms, setPerm, canBuy, badge };
+  return { esc, f1, f2, pct, cap, dirCls, card, title, kv, kvGrid, bar, tag, empty, BOARDS, boardOf, perms, setPerm, canBuy, asked, setAsked, badge };
 })();

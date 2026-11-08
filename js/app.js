@@ -709,10 +709,14 @@ function toast(msg) {
 /* 顶部那颗「设置我能买的」按钮的状态：设过就点亮绿点 */
 function syncPermEntry() {
   const n = Object.keys(UI.perms()).length;
+  const asked = UI.asked();
   const b = $('perm-entry');
   if (b) {
-    b.classList.toggle('on', !!n);
-    b.title = n ? '已开通 ' + n + ' 个板块，点这里修改' : '设置自己已经开通了哪些板块';
+    /* 设过就点亮，哪怕结论是「一个都没开」 */
+    b.classList.toggle('on', asked);
+    b.title = !asked ? '设置自己已经开通了哪些板块'
+      : n ? '已开通 ' + n + ' 个板块，点这里修改'
+        : '已设置：两个都没开通，只看主板';
   }
 }
 
@@ -722,6 +726,7 @@ function openPerm(auto) {
   closePerm();
   permAutoMine = !!auto;
   const p = UI.perms();
+  const noBoard = UI.asked() && !Object.keys(p).length;
   const mask = document.createElement('div');
   mask.className = 'perm-mask';
   mask.innerHTML = `<div class="perm-card">
@@ -729,9 +734,19 @@ function openPerm(auto) {
     <div class="perm-d">勾上你券商里已经开通的板块。设好之后，筛选里的「只看我能买的」会把买不了的票滤掉。这些只存在你自己的浏览器里，不会上传。</div>
     <label class="perm-row"><input type="checkbox" data-k="gem"${p.gem ? ' checked' : ''}> 已开通创业板（10 万 / 2 年）</label>
     <label class="perm-row"><input type="checkbox" data-k="star"${p.star ? ' checked' : ''}> 已开通科创板（50 万 / 2 年）</label>
+    <label class="perm-row perm-none"><input type="checkbox" data-k="none"${noBoard ? ' checked' : ''}> 我两个都没开通，只买主板</label>
     <div class="perm-tip">不确定开没开？打开券商 App →「我的」→ 业务办理里搜「创业板」「科创板」，搜得到就是还没开。</div>
     <button class="perm-ok" onclick="App.applyPerm()">保存</button>
   </div>`;
+  /* 三条互斥：勾「都没开通」就清掉上面两个，勾上面任一个就取消它 */
+  mask.querySelectorAll('input[data-k]').forEach(i => i.addEventListener('change', () => {
+    const all = mask.querySelectorAll('input[data-k]');
+    if (i.dataset.k === 'none') {
+      if (i.checked) all.forEach(o => { if (o.dataset.k !== 'none') o.checked = false; });
+    } else if (i.checked) {
+      all.forEach(o => { if (o.dataset.k === 'none') o.checked = false; });
+    }
+  }));
   mask.addEventListener('click', e => { if (e.target === mask) closePerm(); });
   document.body.appendChild(mask);
 }
@@ -742,7 +757,10 @@ function closePerm() {
 }
 
 function applyPerm() {
-  document.querySelectorAll('.perm-mask input[data-k]').forEach(i => UI.setPerm(i.dataset.k, i.checked));
+  document.querySelectorAll('.perm-mask input[data-k]').forEach(i => {
+    if (i.dataset.k !== 'none') UI.setPerm(i.dataset.k, i.checked);
+  });
+  UI.setAsked();   /* 哪怕结论是「都没开通」，也算设置过了，别再反复弹 */
   closePerm();
   if (permAutoMine) { state.onlyMine = true; permAutoMine = false; }
   syncPermEntry();
@@ -761,8 +779,8 @@ function applyPerm() {
 }
 
 function toggleOnlyMine() {
-  // 还没设置过任何权限就打开筛选，会把一半股票无缘无故藏掉，先让他设
-  if (!state.onlyMine && !Object.keys(UI.perms()).length) { openPerm(true); return; }
+  // 还没设置过权限就打开筛选，会把一半股票无缘无故藏掉，先让他设
+  if (!state.onlyMine && !UI.asked()) { openPerm(true); return; }
   state.onlyMine = !state.onlyMine;
   renderFilters();
   state.fullRebuild = true;
@@ -1223,7 +1241,7 @@ function healthOf(total) {
 }
 
 function scoreLine(d) {
-  if (!d || d.total === null) return '行情或财报还没拉全，综合分先空着——没有数据就不编分数。';
+  if (!d || d.total === null) return '行情或财报还没拉全，分数先空着——没数据就不编分。';
   const dims = [
     ['底子', d.base, 40],
     ['估值', d.val, 30],
@@ -1231,11 +1249,11 @@ function scoreLine(d) {
     ['风险', d.risk, 10]
   ].filter(x => x[1] !== null);
   const wsum = dims.reduce((a, b) => a + b[2], 0);
-  /* 某几项数据缺失时权重会重新分配，所以百分比按剩下的项换算，不假装缺项是 0 分 */
-  const expr = dims.map(([n, v, w]) => `${n} ${v}×${Math.round(w * 100 / wsum)}%`).join(' + ');
-  return `怎么算出来的：${expr} ≈ ${d.total} 分。`
-    + `底子看赚钱够不够多、财务稳不稳，估值看现在贵不贵，趋势看最近往哪走，风险看波动多大、跌得最狠有多深。`
-    + `这四项都是客观读数，分高只代表没有明显硬伤，不代表会涨。`;
+  /* 某项缺数据时权重会重分，所以百分比按剩下的项换算 */
+  const rule = dims.map(([n, , w]) => `${n}×${Math.round(w * 100 / wsum)}%`).join(' + ');
+  return `怎么算的：${rule} 相加得 ${d.total} 分（某项缺数据时权重自动重分）。`
+    + `底子＝赚钱和财务稳不稳，估值＝贵不贵，趋势＝最近往哪走，风险＝波动和最大回撤。`
+    + `分高只说明没明显硬伤，不代表会涨。`;
 }
 
 /* 最大的那个短板：不管总分多少，先把最扎人的一条摆到最上面 */
