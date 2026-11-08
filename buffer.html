@@ -1,0 +1,68 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>韭菜缓冲器 · 买之前，先放冰箱三分钟</title>
+  <meta name="description" content="不判断、不推荐。写一句你想买的理由，把它和这只票现在的真实数据摆在一起，然后放进冰箱放三天。">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%236B8277'/%3E%3Cpath d='M9 8h14v16H9z' stroke='%23fff' stroke-width='2.2' fill='none'/%3E%3Cpath d='M9 14h14' stroke='%23fff' stroke-width='2.2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css?v=52">
+  <link rel="preconnect" href="https://push2.eastmoney.com" crossorigin>
+  <link rel="preconnect" href="https://push2his.eastmoney.com" crossorigin>
+</head>
+<body>
+<div class="app jc-app">
+
+  <div class="jc-head">
+    <a class="jc-back" href="index.html"><span>‹</span> 回到数据看板</a>
+    <div class="jc-title">韭菜缓冲器</div>
+    <div class="jc-sub">不拦你，只是让你把手先放下来三分钟</div>
+  </div>
+
+  <!-- 第一步 -->
+  <div class="jc-card" id="jc-step1">
+    <div class="jc-label">想买哪只</div>
+    <div class="jc-search">
+      <input id="jc-code" type="text" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="输入 6 位代码，如 601899">
+      <button class="jc-btn" id="jc-find" type="button">看看它现在什么价</button>
+    </div>
+    <div class="jc-quote" id="jc-quote"></div>
+  </div>
+
+  <!-- 第二步 -->
+  <div class="jc-card" id="jc-step2" hidden>
+    <div class="jc-label">你为什么现在想买它</div>
+    <div class="jc-tags" id="jc-tags">
+      <button type="button" data-k="msg">群里 / 朋友在说</button>
+      <button type="button" data-k="fomo">它涨得凶，怕错过</button>
+      <button type="button" data-k="dip">跌得够多了，该反弹</button>
+      <button type="button" data-k="crowd">身边人都赚了</button>
+    </div>
+    <textarea id="jc-reason" rows="2" maxlength="60" placeholder="写一句就行，越直白越好。比如：群里说这只票下周要起飞"></textarea>
+    <button class="jc-btn" id="jc-push" type="button">扔进冰箱</button>
+    <div class="jc-hint">放三天。三天里不看它，三天后自己决定。</div>
+  </div>
+
+  <!-- 结果 -->
+  <div class="jc-card jc-result" id="jc-result" hidden></div>
+
+  <!-- 冰箱 -->
+  <div class="jc-card jc-fridge">
+    <div class="jc-fridge-h">
+      <span class="jc-label jc-label-inline">冰箱</span>
+      <span class="jc-fridge-n" id="jc-fridge-n">空的</span>
+    </div>
+    <div id="jc-list"></div>
+  </div>
+
+  <div class="jc-foot">
+    数据来自东方财富公开行情接口，财务数据来自上市公司定期报告。<br>
+    <em>请注意：这里只把事实排在一起，不判断该不该买，也不构成投资建议。</em>
+  </div>
+
+</div>
+
+<script src="js/api.js?v=52"></script>
+<script src="js/buffer.js?v=52"></script>
+</body>
+</html>

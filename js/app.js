@@ -1,4 +1,4 @@
-/* 小白财报速查 · 页面逻辑 */
+﻿/* 小白财报速查 · 页面逻辑 */
 
 const POOL = [
   { secid: '1.600519', name: '贵州茅台', py: 'gzmt' },
@@ -1293,8 +1293,8 @@ function weakestOf(it) {
     else if (s && s.pos >= 75) why = `PE ${f1(q.pe)} 倍，价格已经处在近一年 ${s.pos.toFixed(0)}% 分位（75% 以上算高位区间）`;
     else why = `PE ${f1(q.pe)} 倍、PB ${f1(q.pb)}，都在样本池上沿`;
   } else if (w.k === 'trend') {
-    if (s && s.ret20 !== null) why = `近 20 个交易日 ${s.ret20 >= 0 ? '涨' : '跌'}了 ${Math.abs(s.ret20).toFixed(1)}%，价格在 20 日均线下方`;
-    else why = '价格在 20 日均线下方，短期走势偏弱';
+    if (s && s.ret20 !== null) why = `近 20 个交易日 ${s.ret20 >= 0 ? '涨' : '跌'}了 ${Math.abs(s.ret20).toFixed(1)}%，价格在最近一个月的平均成本线（${f2(s.ma20)} 元）下方`;
+    else why = '价格在最近一个月的平均成本线下方';
   } else {
     why = s ? `年化波动 ${s.vol.toFixed(0)}%、最深回撤 ${Math.abs(s.mdd).toFixed(0)}%，波动幅度在样本里偏高` : '波动幅度偏大';
   }
@@ -1340,16 +1340,14 @@ function adviceOf(it) {
   if (!s || d.val === null || d.trend === null) {
     main = '行情或财报有缺项，组合判断先不下。';
   } else if (pe !== null && pe <= 0) {
-    main = `净利润为负，PE 显示「亏损」，估值只能看 PB ${f1(pb)} 倍。`;
+    main = `最近一期净利润是负的，市盈率显示「亏损」，这时候只能看市净率 ${f1(pb)} 倍。`;
   } else {
-    const bits = [`价格处在近一年区间的 ${pos.toFixed(0)}% 分位`];
-    if (pe !== null) bits.push(`PE ${f1(pe)} 倍`);
-    if (pb !== null) bits.push(`PB ${f1(pb)} 倍`);
-    bits.push(above20 ? '价格在 20 日均线上方' : '价格在 20 日均线下方');
-    if (r20 !== null) bits.push(`近 20 个交易日${r20 >= 0 ? '涨' : '跌'} ${Math.abs(r20).toFixed(1)}%`);
-    main = bits.join('，') + '。';
-    if (pos <= 30 && !above20) main += '<br>估值分位和趋势方向不一致：分位低，但还没止跌。';
-    else if (pos >= 70 && above20) main += '<br>估值分位和趋势同向：分位高，趋势也在上方。';
+    const gapLo = q.price - s.low, gapHi = s.high - q.price;
+    main = `现价 ${f2(q.price)} 元，近一年最低 ${f2(s.low)} 元、最高 ${f2(s.high)} 元：往下到最低还有 ${f2(gapLo)} 元，往上到最高还有 ${f2(gapHi)} 元。`;
+    if (r20 !== null) main += `最近 20 个交易日${r20 >= 0 ? '涨' : '跌'}了 ${Math.abs(r20).toFixed(1)}%。`;
+    main += above20
+      ? `价格在最近一个月的平均成本（${f2(s.ma20)} 元）上面，最近一个月买的人平均是赚的。`
+      : `价格在最近一个月的平均成本（${f2(s.ma20)} 元）下面，最近一个月买的人平均是亏的。`;
   }
 
   const vol = s ? s.vol : null;
@@ -1360,10 +1358,9 @@ function adviceOf(it) {
     : `年化波动 ${vol.toFixed(0)}%，按常见做法把计划投入的钱分成 ${parts} 份，每跌 3%–5% 用一份。`;
 
   const who = vol === null
-    ? '没有波动和回撤数据，看不出这份波动对应多大的承受力。'
-    : vol >= 45 ? `年化波动 ${vol.toFixed(0)}%、近一年最大回撤 ${mdd}%，需要能承受这个幅度的人。`
-      : vol >= 30 ? `年化波动 ${vol.toFixed(0)}%、近一年最大回撤 ${mdd}%，需要能接受两三成回撤的人。`
-        : `年化波动 ${vol.toFixed(0)}%、近一年最大回撤 ${mdd}%，波动幅度在 A 股里偏低。`;
+    ? '没有波动和回撤数据，算不出它平时晃多大。'
+    : `过去一年最大的一次回撤是 ${mdd}%——从最高点跌到最低点的幅度。换成钱：10 万元的仓位，中途最多会先看到 `
+      + `${(Number(mdd) / 10).toFixed(1)} 万元的浮亏。平时它一年的波动幅度大约 ${vol.toFixed(0)}%。这个幅度你能接受吗？`;
 
   return { main, batch, who };
 }
@@ -1442,8 +1439,8 @@ function translationOf(it) {
     const gap = r20 - idxRet;
     t += `，同期沪深300${idxRet >= 0 ? '涨' : '跌'}了 ${Math.abs(idxRet).toFixed(1)}%，${gap >= 0 ? '跑赢' : '跑输'}大盘 ${Math.abs(gap).toFixed(1)} 个百分点`;
   }
-  t += `。现在价格处在近一年区间的 ${s.pos.toFixed(0)}% 位置（0% 是全年最低、100% 是全年最高），`;
-  t += s.pos >= 82 ? '属于偏高位置。' : s.pos <= 30 ? '属于偏低位置。' : '属于中间位置。';
+  const q = it.quote;
+  t += `。现价 ${f2(q.price)} 元；近一年最低 ${f2(s.low)} 元、最高 ${f2(s.high)} 元：往下到最低还有 ${f2(q.price - s.low)} 元，往上到最高还有 ${f2(s.high - q.price)} 元。`;
   return t;
 }
 
@@ -1704,10 +1701,9 @@ function renderDetail(it) {
         <span class="advice-k">${w.cls === 'bad' ? '核心风险' : w.cls === 'good' ? '四项都过线' : '最大短板'}</span>
         <span class="advice-v"><b>${w.title}</b>　${w.why}<button class="q-btn" type="button" data-know="score" aria-label="这个分数怎么算的">?</button></span>
       </div>` : ''}
-      <div class="advice-row"><span class="advice-k">整体判断</span><span class="advice-v">${adv.main}</span></div>
-      <div class="advice-row"><span class="advice-k">分批节奏</span><span class="advice-v">${adv.batch}</span></div>
-      <div class="advice-row"><span class="advice-k">适合人群</span><span class="advice-v">${adv.who}</span></div>
-      <div class="advice-note warn">以上是按数据口径写的一句说明，不是买卖建议。</div>
+      <div class="advice-row"><span class="advice-k">现在在哪</span><span class="advice-v">${adv.main}</span></div>
+      <div class="advice-row"><span class="advice-k">要接受啥</span><span class="advice-v">${adv.who}</span></div>
+      <div class="advice-note">请注意：以上是按数据口径写的一句说明，不是买卖建议。</div>
     </div>
   </div>
 
@@ -1724,15 +1720,15 @@ function renderDetail(it) {
     <div class="k-legend">
       <span><i class="k-sw up"></i>红 = 涨</span>
       <span><i class="k-sw down"></i>绿 = 跌</span>
-      <span><i class="k-line-ma"></i>20 日均线（近一个月平均收盘价）</span>
-      <span><i class="k-line-hl"></i><em id="kHlTxt">虚线：近 60 日最高 / 最低</em></span>
+      <span><i class="k-line-ma"></i>平均成本线（最近一个月买入的人，平均成本）</span>
+      <span><i class="k-line-hl"></i><em id="kHlTxt">虚线：天花板 / 地板（近三个月最高、最低）</em></span>
     </div>
     <div id="trendChart"></div>
     <div class="k-card" id="kCard"></div>
     <div class="chart-note">${translationOf(it)}</div>
-    ${kb ? moreBox('形态速查：当前状态怎么读', KL.quick(kb).map(t => `<div class="bullet"><span class="dot b"></span><span><b>${esc(t.t)}</b>　${esc(t.body)}</span></div>`).join(''))
+    ${kb ? moreBox('现在这个位置，可以对照的几条', KL.quick(kb).map(t => `<div class="bullet"><span class="dot b"></span><span><b>${esc(t.t)}</b>　${esc(t.body)}</span></div>`).join(''))
     : ''}
-    ${def.length ? moreBox('什么情况算看错了', def.map((t, i) => `<div class="bullet"><span class="dot ${i === 0 ? 'g' : i === 1 ? 'r' : 'b'}"></span><span>${t}</span></div>`).join('')) : ''}
+    ${def.length ? moreBox('什么情况说明判断错了', def.map((t, i) => `<div class="bullet"><span class="dot ${i === 0 ? 'g' : i === 1 ? 'r' : 'b'}"></span><span>${t}</span></div>`).join('')) : ''}
   </div>
 
   <div class="grid2">
@@ -1881,8 +1877,8 @@ function renderChart(range) {
   const hlTxt = $('kHlTxt');
   if (hlTxt) {
     hlTxt.textContent = range === '1m'
-      ? `虚线：窗口内最高 ${f2(hlHi)} / 最低 ${f2(hlLo)}`
-      : `虚线：60 日最高 ${f2(hlHi)} / 最低 ${f2(hlLo)}`;
+      ? `虚线：这段最高 ${f2(hlHi)} / 最低 ${f2(hlLo)}`
+      : `虚线：天花板 ${f2(hlHi)} / 地板 ${f2(hlLo)}`;
   }
 
   state.chart.setOption({

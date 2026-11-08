@@ -1,5 +1,6 @@
 /* ============================================================
    K 线解读：全部是「能被读者拿数据核对」的客观口径，不做涨跌预测。
+   文案原则：一句只讲一件事；术语先给生活解释再给数字；不写该不该买。
    build(kl)  -> { days, ma20, ma60, hi60, lo60, last }
    summary(b) -> 顶部一句话
    dayCard(d) -> 点击某根 K 线后的卡片内容
@@ -19,12 +20,12 @@
   }
 
   var SHAPES = {
-    lshadow: { t: '长下影', tone: 'good' },
-    ushadow: { t: '长上影', tone: 'bad' },
-    bigup: { t: '放量大阳', tone: 'good' },
-    bigdown: { t: '放量大阴', tone: 'bad' },
-    doji: { t: '十字星', tone: 'mid' },
-    spike: { t: '冲高回落', tone: 'bad' }
+    lshadow: { t: '探底拉回', tone: 'good' },
+    ushadow: { t: '冲高没守住', tone: 'bad' },
+    bigup: { t: '放量大涨', tone: 'good' },
+    bigdown: { t: '放量大跌', tone: 'bad' },
+    doji: { t: '原地打转', tone: 'mid' },
+    spike: { t: '上冲没接住', tone: 'bad' }
   };
 
   function build(kl) {
@@ -75,33 +76,35 @@
     return { days: days, ma20: ma20, ma60: ma60, hi60: hi60, lo60: lo60, last: days[n - 1], n: n };
   }
 
-  /* 单根 K 的客观描述：先数字，再机制，最后一句边界 */
+  /* 单根 K 的白话：一句一个事实，最后一句说明「这一天只说明这一天」 */
   function readOf(d) {
     var k = d.k, r = d.range || 1;
     var pos = ((k.close - k.low) / r * 100).toFixed(0);
     switch (d.shape) {
       case 'lshadow':
-        return '下影线占当日振幅 ' + (d.lower / r * 100).toFixed(0) + '%，最低 ' + f2(k.low) + ' 元被买回到 ' + f2(k.close)
-          + ' 元，收盘落在当日区间的 ' + pos + '% 位置。当日盘中下探后回抽，收盘价高于当日成交中枢。单根 K 线只描述这一天。';
+        return '今天最低到 ' + f2(k.low) + ' 元，收盘拉回 ' + f2(k.close) + ' 元。下面那根「针」占全天高低差的 '
+          + (d.lower / r * 100).toFixed(0) + '%，说明盘中砸下去之后又被人买回来了。收盘停在当天波动区间的 ' + pos
+          + '% 位置，越靠上表示收得越稳。这只说明当天，不代表后面怎么走。';
       case 'ushadow':
-        return '上影线占当日振幅 ' + (d.upper / r * 100).toFixed(0) + '%，最高 ' + f2(k.high) + ' 元回落到 ' + f2(k.close)
-          + ' 元，收盘落在当日区间的 ' + pos + '% 位置。当日冲高后回落，收盘价低于当日成交中枢。单根 K 线只描述这一天。';
+        return '今天最高冲到 ' + f2(k.high) + ' 元，收盘只回到 ' + f2(k.close) + ' 元。上面那根「针」占全天高低差的 '
+          + (d.upper / r * 100).toFixed(0) + '%，说明冲上去之后又卖回来了。收盘停在当天波动区间的 ' + pos
+          + '% 位置，越靠下表示收得越弱。这只说明当天，不代表后面怎么走。';
       case 'bigup':
-        return '当日涨 ' + Math.abs(d.chg).toFixed(2) + '%，成交 ' + hand(k.volume) + '，是近 5 日均量的 ' + d.vr.toFixed(2)
-          + ' 倍。价格和成交量同时放大，收盘落在当日区间的 ' + pos + '% 位置。';
+        return '今天涨 ' + Math.abs(d.chg).toFixed(2) + '%，成交 ' + hand(k.volume) + '，是近 5 天平均的 '
+          + d.vr.toFixed(2) + ' 倍。价格和成交量一起放大，属于「很热闹的一天」。收盘在当天波动区间的 ' + pos + '% 位置。';
       case 'bigdown':
-        return '当日跌 ' + Math.abs(d.chg).toFixed(2) + '%，成交 ' + hand(k.volume) + '，是近 5 日均量的 ' + d.vr.toFixed(2)
-          + ' 倍。价格和成交量同时放大，收盘落在当日区间的 ' + pos + '% 位置。';
+        return '今天跌 ' + Math.abs(d.chg).toFixed(2) + '%，成交 ' + hand(k.volume) + '，是近 5 天平均的 '
+          + d.vr.toFixed(2) + ' 倍。价格和成交量一起放大，属于「很热闹的一天」。收盘在当天波动区间的 ' + pos + '% 位置。';
       case 'doji':
-        return '实体只占当日振幅 ' + ((d.body / r) * 100).toFixed(0) + '%，开盘 ' + f2(k.open) + ' 元、收盘 ' + f2(k.close)
-          + ' 元，相差 ' + f2(Math.abs(k.close - k.open)) + ' 元，当日价格在这段区间里来回。';
+        return '今天开盘 ' + f2(k.open) + ' 元、收盘 ' + f2(k.close) + ' 元，只差 ' + f2(Math.abs(k.close - k.open))
+          + ' 元，几乎原地不动；但盘中最高最低差了 ' + f2(r) + ' 元。开盘和收盘挨在一起，说明这一天多空没分出胜负。';
       case 'spike':
-        return '最高 ' + f2(k.high) + ' 元、收 ' + f2(k.close) + ' 元，从当日高点回落 ' + (((k.high - k.close) / k.close) * 100).toFixed(2)
-          + '%，收盘低于开盘 ' + f2(k.open) + ' 元。当日上冲的部分没有守住。';
+        return '今天最高摸到 ' + f2(k.high) + ' 元，收盘 ' + f2(k.close) + ' 元，从当天高点回落 '
+          + (((k.high - k.close) / k.close) * 100).toFixed(2) + '%，收盘还低于开盘价 ' + f2(k.open) + ' 元。冲上去的那一段没守住。';
       default:
-        return '当日' + (d.chg === null ? '涨跌数据不足' : (d.chg >= 0 ? '涨 ' : '跌 ') + Math.abs(d.chg).toFixed(2) + '%')
-          + '，最高 ' + f2(k.high) + ' 元、最低 ' + f2(k.low) + ' 元，收盘落在当日区间的 ' + pos + '% 位置。'
-          + '没有命中长上下影、放量、十字星这几类形态。';
+        return '今天' + (d.chg === null ? '涨跌数据不足' : (d.chg >= 0 ? '涨 ' : '跌 ') + Math.abs(d.chg).toFixed(2) + '%')
+          + '，全天在 ' + f2(k.low) + '–' + f2(k.high) + ' 元之间，收盘落在当天波动区间的 ' + pos
+          + '% 位置。没有明显的长影线、放量或原地打转。';
     }
   }
 
@@ -111,16 +114,16 @@
       shape: d.shape ? SHAPES[d.shape] : null,
       read: readOf(d),
       rows: [
-        ['开 / 收', f2(k.open) + ' / ' + f2(k.close) + ' 元'],
-        ['最高 / 最低', f2(k.high) + ' / ' + f2(k.low) + ' 元'],
-        ['涨跌幅', d.chg === null ? '—' : sgn(d.chg, '%')],
-        ['成交量', hand(k.volume) + (d.vr ? ' · 近 5 日均量 ' + d.vr.toFixed(2) + ' 倍' : '')],
-        ['距 20 日均线', d.mg === null ? '—' : sgn(d.mg, '%')]
+        ['今天开盘 / 收盘', f2(k.open) + ' / ' + f2(k.close) + ' 元'],
+        ['今天最高 / 最低', f2(k.high) + ' / ' + f2(k.low) + ' 元'],
+        ['比昨天', d.chg === null ? '—' : sgn(d.chg, '%')],
+        ['成交量', hand(k.volume) + (d.vr ? '，是近 5 天平均的 ' + d.vr.toFixed(2) + ' 倍' : '')],
+        ['离平均成本', d.mg === null ? '—' : sgn(d.mg, '%') + '（' + f2(d.ma20) + ' 元）']
       ]
     };
   }
 
-  /* 顶部一句话：优先讲最近 3 天的量价关系，其次讲当天，最后退回均线位置 */
+  /* 顶部一句话：优先讲最近 3 天的量价关系，其次讲当天形态，最后退回位置 */
   function summary(b) {
     var d = b.days, last = b.last, i;
     var d3 = d.slice(-3);
@@ -134,49 +137,50 @@
       }
     }
     if (d3.length === 3 && up3 && shrink3) {
-      return '最近 3 个交易日连着收涨（' + chgs.map(function (c) { return c === null ? '—' : sgn(c, '%'); }).join('、')
-        + '），成交量逐日下降（' + vols.map(hand).join(' → ') + '）：价格在往上，成交的钱在变少。';
+      return '最近 3 天连着涨（' + chgs.map(function (c) { return c === null ? '—' : sgn(c, '%'); }).join('、')
+        + '），但成交量一天比一天少（' + vols.map(hand).join(' → ') + '）——价格在往上，参与的钱在变少。';
     }
     if (last.shape) {
-      return '最新一个交易日出现「' + SHAPES[last.shape].t + '」：' + readOf(last);
+      return '今天出现了「' + SHAPES[last.shape].t + '」。' + readOf(last);
     }
-    if (last.mg === null) return '历史数据不足，均线还不好算。';
-    return '最新一个交易日收 ' + f2(last.k.close) + ' 元，' + (last.mg >= 0 ? '高于' : '低于') + ' 20 日均线（' + f2(last.ma20)
-      + ' 元）' + Math.abs(last.mg).toFixed(2) + '%，近 60 个交易日区间 ' + f2(b.lo60) + '–' + f2(b.hi60)
-      + ' 元，收盘在区间 ' + (((last.k.close - b.lo60) / (b.hi60 - b.lo60 || 1)) * 100).toFixed(0) + '% 位置。';
+    if (last.mg === null) return '历史数据不足 20 天，平均成本线还画不出来。';
+    var gapLo = last.k.close - b.lo60, gapHi = b.hi60 - last.k.close;
+    return '今天收 ' + f2(last.k.close) + ' 元，比最近一个月的平均成本（' + f2(last.ma20) + ' 元）'
+      + (last.mg >= 0 ? '高 ' : '低 ') + Math.abs(last.mg).toFixed(2) + '%。往回看三个月，最高到过 ' + f2(b.hi60)
+      + ' 元、最低到过 ' + f2(b.lo60) + ' 元：现在离最低差 ' + f2(gapLo) + ' 元，离最高差 ' + f2(gapHi) + ' 元。';
   }
 
-  /* 底部速查：当前状态最契合的两三条 */
+  /* 底部速查：当前状态最契合的几条，全部给定义与数字，不下结论 */
   function quick(b) {
     var last = b.last, out = [];
-    var pos = ((last.k.close - b.lo60) / (b.hi60 - b.lo60 || 1)) * 100;
+    var gapLo = last.k.close - b.lo60, gapHi = b.hi60 - last.k.close;
 
     if (last.ma20 !== null) {
       out.push({
-        t: last.mg >= 0 ? '站在 20 日均线上方' : '压在 20 日均线下方',
-        body: '收盘 ' + f2(last.k.close) + ' 元，20 日均线 ' + f2(last.ma20) + ' 元，' + (last.mg >= 0 ? '高' : '低')
-          + ' ' + Math.abs(last.mg).toFixed(2) + '%。20 日均线是最近 20 个交易日收盘价的算术平均，常被当作近一个月的平均成本参考。'
+        t: last.mg >= 0 ? '价格在平均成本线之上' : '价格在平均成本线之下',
+        body: '今天收 ' + f2(last.k.close) + ' 元，最近一个月的平均成本是 ' + f2(last.ma20) + ' 元（20 日均线＝最近 20 个交易日收盘价的平均值）。'
+          + '高于它，说明最近一个月买入的人平均是赚的；低于它，平均是亏的。现在' + (last.mg >= 0 ? '高 ' : '低 ')
+          + Math.abs(last.mg).toFixed(2) + '%。'
       });
     }
 
     out.push({
-      t: '近 60 个交易日区间位置',
-      body: '最低 ' + f2(b.lo60) + ' 元、最高 ' + f2(b.hi60) + ' 元，收盘在区间 ' + pos.toFixed(0) + '% 位置（0% 是区间最低，100% 是区间最高）。'
+      t: '离三个月的高点、低点有多远',
+      body: '近三个月最低 ' + f2(b.lo60) + ' 元、最高 ' + f2(b.hi60) + ' 元。现在是 ' + f2(last.k.close) + ' 元：'
+        + '比最低高 ' + f2(gapLo) + ' 元，比最高低 ' + f2(gapHi) + ' 元。'
     });
 
     if (last.shape) {
-      out.push({
-        t: SHAPES[last.shape].t,
-        body: readOf(last)
-      });
+      out.push({ t: SHAPES[last.shape].t, body: readOf(last) });
     }
 
     out.push({
-      t: '均线方向',
+      t: '两条平均成本线的位置',
       body: last.ma60 === null
-        ? '历史不足 60 个交易日，60 日均线还算不出来。'
-        : '20 日均线 ' + f2(last.ma20) + ' 元，60 日均线 ' + f2(last.ma60) + ' 元，20 日线在 60 日线'
-          + (last.ma20 > last.ma60 ? '上方' : '下方') + '。'
+        ? '历史不足 60 个交易日，三个月的平均成本还算不出来。'
+        : '一个月的平均成本 ' + f2(last.ma20) + ' 元，三个月的平均成本 ' + f2(last.ma60) + ' 元。一个月的在三个月的'
+          + (last.ma20 > last.ma60 ? '上方' : '下方') + '，意思是最近一个月买入的人，成本比三个月前那一批'
+          + (last.ma20 > last.ma60 ? '更高' : '更低') + '。'
     });
 
     return out;
