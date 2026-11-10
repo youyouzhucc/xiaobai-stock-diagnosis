@@ -1,14 +1,14 @@
 {
-  "date": "2026-11-09",
-  "generatedAt": "2026-11-09 20:44",
+  "date": "2026-11-10",
+  "generatedAt": "2026-11-10 20:29",
   "count": 30,
   "items": {
     "300015": {
       "name": "爱尔眼科",
       "total": 74,
       "base": 75,
-      "val": 74,
-      "trend": 74,
+      "val": 75,
+      "trend": 73,
       "risk": 72,
       "weights": 4,
       "financial": false,
@@ -34,37 +34,32 @@
         ]
       },
       "stats": {
-        "pos": 26.9,
-        "last": 8.93,
-        "ma20": 8.31,
-        "ma60": 8.29,
+        "pos": 25.2,
+        "last": 8.85,
+        "ma20": 8.36,
+        "ma60": 8.28,
         "high": 12.36,
         "low": 7.67,
         "highDate": "2025-11-10",
         "lowDate": "2026-10-15",
         "count": 250,
-        "ret20": 13.3,
-        "ret60": 1.2,
-        "vol": 22.4,
+        "ret20": 12.9,
+        "ret60": -2.4,
+        "vol": 21.7,
         "mdd": -36.8
       },
-      "dividendYield": 2.02
+      "dividendYield": 2.03
     },
     "300059": {
       "name": "东方财富",
-      "total": 76,
-      "base": 80,
+      "total": 74,
+      "base": null,
       "val": 84,
       "trend": 59,
-      "risk": 71,
-      "weights": 4,
+      "risk": 73,
+      "weights": 3,
       "financial": true,
       "keys": {
-        "base": [
-          "roe",
-          "margin",
-          "cash"
-        ],
         "val": [
           "pe",
           "pb",
@@ -80,38 +75,32 @@
         ]
       },
       "stats": {
-        "pos": 16.8,
+        "pos": 17.7,
         "last": 18.78,
-        "ma20": 18.31,
-        "ma60": 18.65,
-        "high": 26.69,
+        "ma20": 18.35,
+        "ma60": 18.62,
+        "high": 26.23,
         "low": 17.18,
-        "highDate": "2025-10-29",
+        "highDate": "2025-10-30",
         "lowDate": "2026-10-09",
         "count": 250,
-        "ret20": 5.3,
-        "ret60": -6,
+        "ret20": 4,
+        "ret60": -6.2,
         "vol": 26.5,
-        "mdd": -34.5
+        "mdd": -32.3
       },
       "dividendYield": 0.53
     },
     "300124": {
       "name": "汇川技术",
-      "total": 64,
-      "base": 59,
-      "val": 74,
-      "trend": 61,
+      "total": 68,
+      "base": null,
+      "val": 76,
+      "trend": 59,
       "risk": 61,
-      "weights": 4,
+      "weights": 3,
       "financial": false,
       "keys": {
-        "base": [
-          "roe",
-          "margin",
-          "debt",
-          "cash"
-        ],
         "val": [
           "pe",
           "pb",
@@ -127,29 +116,29 @@
         ]
       },
       "stats": {
-        "pos": 25.8,
-        "last": 57.55,
-        "ma20": 53.63,
-        "ma60": 55.94,
+        "pos": 21,
+        "last": 55.85,
+        "ma20": 53.88,
+        "ma60": 55.79,
         "high": 83.55,
         "low": 48.5,
         "highDate": "2026-05-26",
         "lowDate": "2026-10-15",
         "count": 250,
-        "ret20": 14.1,
-        "ret60": -10.9,
-        "vol": 34.8,
+        "ret20": 9.7,
+        "ret60": -13.2,
+        "vol": 35.2,
         "mdd": -38.6
       },
-      "dividendYield": 0.87
+      "dividendYield": 0.9
     },
     "300750": {
       "name": "宁德时代",
-      "total": 64,
+      "total": 67,
       "base": 67,
-      "val": 89,
-      "trend": 30,
-      "risk": 44,
+      "val": 88,
+      "trend": 43,
+      "risk": 45,
       "weights": 4,
       "financial": false,
       "keys": {
@@ -174,29 +163,29 @@
         ]
       },
       "stats": {
-        "pos": 12.8,
-        "last": 248.64,
-        "ma20": 250.41,
-        "ma60": 313.28,
+        "pos": 13.3,
+        "last": 249.95,
+        "ma20": 248.45,
+        "ma60": 310.88,
         "high": 467.35,
         "low": 216.51,
         "highDate": "2026-05-07",
         "lowDate": "2026-10-23",
         "count": 250,
-        "ret20": -16.7,
-        "ret60": -35.7,
-        "vol": 43.7,
+        "ret20": -13.5,
+        "ret60": -36.5,
+        "vol": 43.4,
         "mdd": -51.9
       },
-      "dividendYield": 3.37
+      "dividendYield": 3.35
     },
     "300760": {
       "name": "迈瑞医疗",
       "total": 77,
       "base": 85,
       "val": 68,
-      "trend": 80,
-      "risk": 66,
+      "trend": 79,
+      "risk": 67,
       "weights": 4,
       "financial": false,
       "keys": {
@@ -221,28 +210,28 @@
         ]
       },
       "stats": {
-        "pos": 58.2,
-        "last": 181.1,
-        "ma20": 174.4,
-        "ma60": 163.31,
-        "high": 219.15,
+        "pos": 56,
+        "last": 178.92,
+        "ma20": 175.16,
+        "ma60": 163.74,
+        "high": 218.96,
         "low": 128.03,
-        "highDate": "2025-10-29",
+        "highDate": "2025-10-30",
         "lowDate": "2026-06-29",
         "count": 250,
-        "ret20": 10,
-        "ret60": 21.7,
-        "vol": 28.2,
-        "mdd": -39.6
+        "ret20": 9.3,
+        "ret60": 17,
+        "vol": 27.9,
+        "mdd": -37.8
       },
-      "dividendYield": 3.06
+      "dividendYield": 3.1
     },
     "600030": {
       "name": "中信证券",
       "total": 75,
       "base": 71,
       "val": 89,
-      "trend": 56,
+      "trend": 55,
       "risk": 85,
       "weights": 4,
       "financial": true,
@@ -266,21 +255,21 @@
         ]
       },
       "stats": {
-        "pos": 35,
-        "last": 25.64,
-        "ma20": 25.55,
-        "ma60": 26.56,
+        "pos": 33.3,
+        "last": 25.53,
+        "ma20": 25.53,
+        "ma60": 26.52,
         "high": 29.88,
         "low": 23.36,
         "highDate": "2026-07-01",
         "lowDate": "2026-04-07",
         "count": 250,
-        "ret20": -1.6,
-        "ret60": -8.3,
+        "ret20": -1.8,
+        "ret60": -8.7,
         "vol": 20.8,
-        "mdd": -20.6
+        "mdd": -20.3
       },
-      "dividendYield": 2.73
+      "dividendYield": 2.74
     },
     "600036": {
       "name": "招商银行",
@@ -313,15 +302,15 @@
       "stats": {
         "pos": 89.7,
         "last": 43.01,
-        "ma20": 42.65,
-        "ma60": 41.08,
+        "ma20": 42.66,
+        "ma60": 41.15,
         "high": 44.01,
         "low": 34.28,
         "highDate": "2026-11-02",
         "lowDate": "2026-07-01",
         "count": 250,
-        "ret20": 0.6,
-        "ret60": 10.9,
+        "ret20": 0.5,
+        "ret60": 10.5,
         "vol": 17,
         "mdd": -16.7
       },
@@ -331,7 +320,7 @@
       "name": "恒瑞医药",
       "total": 73,
       "base": 82,
-      "val": 66,
+      "val": 67,
       "trend": 69,
       "risk": 67,
       "weights": 4,
@@ -358,18 +347,18 @@
         ]
       },
       "stats": {
-        "pos": 30.9,
-        "last": 49.23,
-        "ma20": 47.65,
-        "ma60": 47.36,
+        "pos": 28.1,
+        "last": 48.55,
+        "ma20": 47.8,
+        "ma60": 47.26,
         "high": 65.63,
         "low": 41.89,
         "highDate": "2026-01-13",
         "lowDate": "2026-09-11",
         "count": 250,
-        "ret20": 6.9,
-        "ret60": -9.9,
-        "vol": 32,
+        "ret20": 6.7,
+        "ret60": -10.4,
+        "vol": 32.1,
         "mdd": -33.7
       },
       "dividendYield": 0.41
@@ -379,8 +368,8 @@
       "total": 81,
       "base": 94,
       "val": 64,
-      "trend": 80,
-      "risk": 82,
+      "trend": 79,
+      "risk": 83,
       "weights": 4,
       "financial": false,
       "keys": {
@@ -405,21 +394,21 @@
         ]
       },
       "stats": {
-        "pos": 75.6,
-        "last": 1444.99,
-        "ma20": 1366.05,
-        "ma60": 1314.92,
+        "pos": 74,
+        "last": 1439,
+        "ma20": 1374.26,
+        "ma60": 1316.43,
         "high": 1539.98,
         "low": 1151.01,
         "highDate": "2026-02-06",
         "lowDate": "2026-06-29",
         "count": 250,
-        "ret20": 12.2,
-        "ret60": 10.4,
-        "vol": 21.4,
+        "ret20": 12.9,
+        "ret60": 6.7,
+        "vol": 20.7,
         "mdd": -23.5
       },
-      "dividendYield": 3.6
+      "dividendYield": 3.61
     },
     "600690": {
       "name": "海尔智家",
@@ -452,21 +441,21 @@
         ]
       },
       "stats": {
-        "pos": 35.8,
-        "last": 21.62,
-        "ma20": 20.39,
+        "pos": 34.1,
+        "last": 21.47,
+        "ma20": 20.43,
         "ma60": 20.75,
         "high": 27.44,
         "low": 18.38,
         "highDate": "2025-12-03",
         "lowDate": "2026-06-22",
         "count": 250,
-        "ret20": 3,
-        "ret60": 2.7,
-        "vol": 23.6,
+        "ret20": 4.2,
+        "ret60": 0.4,
+        "vol": 23.5,
         "mdd": -31.7
       },
-      "dividendYield": 5.37
+      "dividendYield": 5.41
     },
     "600809": {
       "name": "山西汾酒",
@@ -499,32 +488,38 @@
         ]
       },
       "stats": {
-        "pos": 33.5,
-        "last": 130.6,
-        "ma20": 119.89,
-        "ma60": 118.05,
+        "pos": 32.4,
+        "last": 129.45,
+        "ma20": 120.65,
+        "ma60": 118.15,
         "high": 197.02,
         "low": 97.08,
         "highDate": "2025-11-17",
         "lowDate": "2026-07-10",
         "count": 250,
-        "ret20": 12.3,
-        "ret60": 8.6,
-        "vol": 36.9,
+        "ret20": 13.3,
+        "ret60": 5.2,
+        "vol": 36.7,
         "mdd": -49.3
       },
-      "dividendYield": 5.02
+      "dividendYield": 5.07
     },
     "600887": {
       "name": "伊利股份",
-      "total": 76,
-      "base": null,
+      "total": 75,
+      "base": 73,
       "val": 68,
       "trend": 82,
       "risk": 90,
-      "weights": 3,
+      "weights": 4,
       "financial": false,
       "keys": {
+        "base": [
+          "roe",
+          "margin",
+          "debt",
+          "cash"
+        ],
         "val": [
           "pe",
           "pb",
@@ -542,15 +537,15 @@
       "stats": {
         "pos": 93.5,
         "last": 31.14,
-        "ma20": 29.19,
-        "ma60": 27.35,
+        "ma20": 29.36,
+        "ma60": 27.43,
         "high": 31.65,
         "low": 23.76,
         "highDate": "2026-11-06",
         "lowDate": "2026-07-01",
         "count": 250,
-        "ret20": 11.4,
-        "ret60": 18.8,
+        "ret20": 12.1,
+        "ret60": 18.6,
         "vol": 17.5,
         "mdd": -15.3
       },
@@ -560,7 +555,7 @@
       "name": "长江电力",
       "total": 73,
       "base": 73,
-      "val": 65,
+      "val": 66,
       "trend": 76,
       "risk": 95,
       "weights": 4,
@@ -587,28 +582,28 @@
         ]
       },
       "stats": {
-        "pos": 95.3,
-        "last": 29.83,
-        "ma20": 29.63,
-        "ma60": 28.74,
+        "pos": 92.5,
+        "last": 29.67,
+        "ma20": 29.65,
+        "ma60": 28.77,
         "high": 30.1,
         "low": 24.38,
         "highDate": "2026-11-04",
         "lowDate": "2026-01-29",
         "count": 250,
-        "ret20": 1.5,
-        "ret60": 7.5,
-        "vol": 14,
+        "ret20": 1.8,
+        "ret60": 5.8,
+        "vol": 13.9,
         "mdd": -10.8
       },
-      "dividendYield": 3.35
+      "dividendYield": 3.37
     },
     "601012": {
       "name": "隆基绿能",
       "total": 42,
       "base": 22,
       "val": 53,
-      "trend": 60,
+      "trend": 61,
       "risk": 57,
       "weights": 4,
       "financial": false,
@@ -633,18 +628,18 @@
         ]
       },
       "stats": {
-        "pos": 11.4,
-        "last": 12.02,
-        "ma20": 11.38,
-        "ma60": 11.69,
+        "pos": 12.5,
+        "last": 12.16,
+        "ma20": 11.44,
+        "ma60": 11.67,
         "high": 23.57,
         "low": 10.53,
         "highDate": "2025-11-10",
         "lowDate": "2026-10-15",
         "count": 250,
-        "ret20": 8.1,
-        "ret60": -7,
-        "vol": 28.3,
+        "ret20": 9.9,
+        "ret60": -6,
+        "vol": 28.4,
         "mdd": -52.8
       },
       "dividendYield": null
@@ -653,8 +648,8 @@
       "name": "中国神华",
       "total": 70,
       "base": 69,
-      "val": 71,
-      "trend": 65,
+      "val": 72,
+      "trend": 63,
       "risk": 79,
       "weights": 4,
       "financial": false,
@@ -680,28 +675,28 @@
         ]
       },
       "stats": {
-        "pos": 83.8,
-        "last": 49.57,
-        "ma20": 49.93,
-        "ma60": 47.27,
+        "pos": 78.8,
+        "last": 48.8,
+        "ma20": 49.94,
+        "ma60": 47.35,
         "high": 52.05,
         "low": 36.72,
         "highDate": "2026-11-04",
         "lowDate": "2026-06-30",
         "count": 250,
-        "ret20": 2.4,
-        "ret60": 15.4,
-        "vol": 25.9,
+        "ret20": 0.6,
+        "ret60": 11.7,
+        "vol": 26,
         "mdd": -24
       },
-      "dividendYield": 6.03
+      "dividendYield": 6.13
     },
     "601166": {
       "name": "兴业银行",
-      "total": 64,
+      "total": 65,
       "base": 39,
       "val": 82,
-      "trend": 77,
+      "trend": 78,
       "risk": 88,
       "weights": 4,
       "financial": true,
@@ -725,28 +720,28 @@
         ]
       },
       "stats": {
-        "pos": 74,
-        "last": 19.69,
-        "ma20": 18.98,
-        "ma60": 18.33,
+        "pos": 73.6,
+        "last": 19.67,
+        "ma20": 19.06,
+        "ma60": 18.35,
         "high": 20.83,
         "low": 16.44,
         "highDate": "2025-11-14",
         "lowDate": "2026-06-29",
         "count": 250,
-        "ret20": 6.8,
-        "ret60": 7.4,
+        "ret20": 8.4,
+        "ret60": 7.3,
         "vol": 16.9,
         "mdd": -19.3
       },
-      "dividendYield": 5.41
+      "dividendYield": 5.42
     },
     "601318": {
       "name": "中国平安",
-      "total": 74,
+      "total": 75,
       "base": 69,
-      "val": 90,
-      "trend": 62,
+      "val": 91,
+      "trend": 63,
       "risk": 74,
       "weights": 4,
       "financial": true,
@@ -770,28 +765,28 @@
         ]
       },
       "stats": {
-        "pos": 33.1,
-        "last": 54.6,
-        "ma20": 52.6,
-        "ma60": 53.28,
+        "pos": 31.2,
+        "last": 54.1,
+        "ma20": 52.72,
+        "ma60": 53.31,
         "high": 72.15,
         "low": 45.92,
         "highDate": "2026-01-06",
         "lowDate": "2026-06-29",
         "count": 250,
-        "ret20": 2.6,
-        "ret60": 4.2,
-        "vol": 20.6,
+        "ret20": 4.7,
+        "ret60": 3.4,
+        "vol": 20.7,
         "mdd": -35.4
       },
-      "dividendYield": 5
+      "dividendYield": 5.05
     },
     "601899": {
       "name": "紫金矿业",
-      "total": 73,
+      "total": 72,
       "base": 84,
-      "val": 87,
-      "trend": 37,
+      "val": 88,
+      "trend": 36,
       "risk": 54,
       "weights": 4,
       "financial": false,
@@ -817,29 +812,29 @@
         ]
       },
       "stats": {
-        "pos": 21.9,
-        "last": 28.41,
-        "ma20": 28.63,
-        "ma60": 31.21,
+        "pos": 20.8,
+        "last": 28.18,
+        "ma20": 28.52,
+        "ma60": 31.09,
         "high": 44.14,
         "low": 24,
         "highDate": "2026-01-29",
         "lowDate": "2026-07-01",
         "count": 250,
-        "ret20": -6,
-        "ret60": -18.2,
+        "ret20": -7.3,
+        "ret60": -19.6,
         "vol": 40.1,
         "mdd": -42.1
       },
-      "dividendYield": null
+      "dividendYield": 2.84
     },
     "603259": {
       "name": "药明康德",
       "total": 74,
       "base": 86,
       "val": 70,
-      "trend": 58,
-      "risk": 68,
+      "trend": 57,
+      "risk": 69,
       "weights": 4,
       "financial": false,
       "keys": {
@@ -865,17 +860,17 @@
       },
       "stats": {
         "pos": 74.1,
-        "last": 150.29,
-        "ma20": 146.36,
-        "ma60": 155.25,
+        "last": 150.3,
+        "ma20": 146,
+        "ma60": 155.08,
         "high": 173.09,
         "low": 85,
         "highDate": "2026-08-20",
         "lowDate": "2026-03-23",
         "count": 250,
-        "ret20": -4.8,
-        "ret60": -2.6,
-        "vol": 43.7,
+        "ret20": -4.5,
+        "ret60": -6.5,
+        "vol": 42.8,
         "mdd": -19.5
       },
       "dividendYield": 1.39
@@ -884,7 +879,7 @@
       "name": "中芯国际",
       "total": 52,
       "base": 57,
-      "val": 44,
+      "val": 45,
       "trend": 55,
       "risk": 52,
       "weights": 4,
@@ -911,73 +906,28 @@
         ]
       },
       "stats": {
-        "pos": 20.9,
-        "last": 109.02,
-        "ma20": 103.42,
-        "ma60": 115.78,
+        "pos": 19.4,
+        "last": 107.75,
+        "ma20": 103.5,
+        "ma60": 115.47,
         "high": 176.34,
         "low": 91.2,
         "highDate": "2026-07-10",
         "lowDate": "2026-04-07",
         "count": 250,
-        "ret20": 2.2,
-        "ret60": -15.2,
-        "vol": 41,
+        "ret20": 1.7,
+        "ret60": -14.7,
+        "vol": 40.9,
         "mdd": -44.1
       },
       "dividendYield": null
-    },
-    "000001": {
-      "name": "平安银行",
-      "total": 74,
-      "base": 65,
-      "val": 77,
-      "trend": 76,
-      "risk": 92,
-      "weights": 4,
-      "financial": true,
-      "keys": {
-        "base": [
-          "roe",
-          "cash"
-        ],
-        "val": [
-          "pe",
-          "pb",
-          "pos"
-        ],
-        "trend": [
-          "ma",
-          "ret"
-        ],
-        "risk": [
-          "vol",
-          "mdd"
-        ]
-      },
-      "stats": {
-        "pos": 99.1,
-        "last": 11.89,
-        "ma20": 11.53,
-        "ma60": 11.42,
-        "high": 11.91,
-        "low": 9.74,
-        "highDate": "2026-11-09",
-        "lowDate": "2026-07-01",
-        "count": 250,
-        "ret20": 1.4,
-        "ret60": 8.7,
-        "vol": 16.6,
-        "mdd": -12.8
-      },
-      "dividendYield": 5.12
     },
     "000333": {
       "name": "美的集团",
       "total": 74,
       "base": 69,
-      "val": 70,
-      "trend": 79,
+      "val": 72,
+      "trend": 78,
       "risk": 91,
       "weights": 4,
       "financial": false,
@@ -1003,28 +953,73 @@
         ]
       },
       "stats": {
-        "pos": 99.6,
-        "last": 89.79,
-        "ma20": 86.38,
-        "ma60": 85.29,
+        "pos": 93.9,
+        "last": 88.53,
+        "ma20": 86.66,
+        "ma60": 85.34,
         "high": 89.87,
         "low": 68.05,
         "highDate": "2026-11-06",
         "lowDate": "2026-03-30",
         "count": 250,
-        "ret20": 7.5,
-        "ret60": 7.5,
-        "vol": 20.5,
+        "ret20": 6.9,
+        "ret60": 3.8,
+        "vol": 20.3,
         "mdd": -12.9
       },
-      "dividendYield": 4.79
+      "dividendYield": 4.86
+    },
+    "000001": {
+      "name": "平安银行",
+      "total": 74,
+      "base": 65,
+      "val": 77,
+      "trend": 77,
+      "risk": 92,
+      "weights": 4,
+      "financial": true,
+      "keys": {
+        "base": [
+          "roe",
+          "cash"
+        ],
+        "val": [
+          "pe",
+          "pb",
+          "pos"
+        ],
+        "trend": [
+          "ma",
+          "ret"
+        ],
+        "risk": [
+          "vol",
+          "mdd"
+        ]
+      },
+      "stats": {
+        "pos": 97.7,
+        "last": 11.86,
+        "ma20": 11.55,
+        "ma60": 11.44,
+        "high": 11.91,
+        "low": 9.74,
+        "highDate": "2026-11-09",
+        "lowDate": "2026-07-01",
+        "count": 250,
+        "ret20": 2.5,
+        "ret60": 7.4,
+        "vol": 16.5,
+        "mdd": -12.8
+      },
+      "dividendYield": 5.13
     },
     "000858": {
       "name": "五 粮 液",
       "total": 71,
       "base": 63,
       "val": 83,
-      "trend": 71,
+      "trend": 70,
       "risk": 71,
       "weights": 4,
       "financial": false,
@@ -1050,75 +1045,28 @@
         ]
       },
       "stats": {
-        "pos": 13.8,
-        "last": 74.74,
-        "ma20": 73.45,
-        "ma60": 72.03,
+        "pos": 12.8,
+        "last": 74.25,
+        "ma20": 73.64,
+        "ma60": 71.99,
         "high": 117.34,
         "low": 67.94,
         "highDate": "2025-11-12",
         "lowDate": "2026-07-09",
         "count": 250,
-        "ret20": 5.2,
-        "ret60": -0.5,
-        "vol": 18.9,
+        "ret20": 5.4,
+        "ret60": -2.5,
+        "vol": 18.7,
         "mdd": -41.1
       },
-      "dividendYield": 6.9
-    },
-    "000651": {
-      "name": "格力电器",
-      "total": 71,
-      "base": 65,
-      "val": 79,
-      "trend": 62,
-      "risk": 93,
-      "weights": 4,
-      "financial": false,
-      "keys": {
-        "base": [
-          "roe",
-          "margin",
-          "debt",
-          "cash"
-        ],
-        "val": [
-          "pe",
-          "pb",
-          "pos"
-        ],
-        "trend": [
-          "ma",
-          "ret"
-        ],
-        "risk": [
-          "vol",
-          "mdd"
-        ]
-      },
-      "stats": {
-        "pos": 77.3,
-        "last": 39.07,
-        "ma20": 38.47,
-        "ma60": 38.59,
-        "high": 40.48,
-        "low": 34.27,
-        "highDate": "2026-07-30",
-        "lowDate": "2026-06-22",
-        "count": 250,
-        "ret20": -1.3,
-        "ret60": 2.5,
-        "vol": 18.4,
-        "mdd": -9.7
-      },
-      "dividendYield": 7.68
+      "dividendYield": 6.95
     },
     "002594": {
       "name": "比亚迪",
       "total": 65,
       "base": 57,
       "val": 77,
-      "trend": 57,
+      "trend": 58,
       "risk": 79,
       "weights": 4,
       "financial": false,
@@ -1144,18 +1092,18 @@
         ]
       },
       "stats": {
-        "pos": 22.4,
-        "last": 84.9,
-        "ma20": 82.94,
-        "ma60": 85.76,
+        "pos": 21,
+        "last": 84.44,
+        "ma20": 83.05,
+        "ma60": 85.65,
         "high": 111.46,
         "low": 77.24,
         "highDate": "2026-03-23",
         "lowDate": "2026-06-29",
         "count": 250,
-        "ret20": 0.4,
-        "ret60": -5.7,
-        "vol": 23,
+        "ret20": 2.8,
+        "ret60": -7.4,
+        "vol": 22.8,
         "mdd": -27.4
       },
       "dividendYield": 0.42
@@ -1191,28 +1139,28 @@
         ]
       },
       "stats": {
-        "pos": 65,
-        "last": 34.67,
-        "ma20": 34.17,
-        "ma60": 34.07,
+        "pos": 66.4,
+        "last": 34.83,
+        "ma20": 34.23,
+        "ma60": 34.04,
         "high": 38.63,
         "low": 27.31,
         "highDate": "2026-08-03",
         "lowDate": "2025-12-16",
         "count": 250,
-        "ret20": 4.3,
-        "ret60": -5.5,
+        "ret20": 3.6,
+        "ret60": -5.6,
         "vol": 23,
         "mdd": -15.9
       },
-      "dividendYield": 3.75
+      "dividendYield": 3.73
     },
     "002475": {
       "name": "立讯精密",
       "total": 61,
       "base": 50,
-      "val": 80,
-      "trend": 60,
+      "val": 79,
+      "trend": 62,
       "risk": 48,
       "weights": 4,
       "financial": false,
@@ -1238,28 +1186,28 @@
         ]
       },
       "stats": {
-        "pos": 19.2,
-        "last": 50.78,
-        "ma20": 47.64,
-        "ma60": 51.96,
+        "pos": 21.6,
+        "last": 51.68,
+        "ma20": 47.92,
+        "ma60": 51.89,
         "high": 81.53,
         "low": 43.45,
         "highDate": "2026-05-13",
         "lowDate": "2026-10-15",
         "count": 250,
-        "ret20": 9.9,
-        "ret60": -10.7,
+        "ret20": 12.3,
+        "ret60": -7.2,
         "vol": 45.4,
         "mdd": -44.3
       },
-      "dividendYield": 0.81
+      "dividendYield": 0.79
     },
     "000725": {
       "name": "京东方Ａ",
       "total": 55,
       "base": 50,
-      "val": 80,
-      "trend": 30,
+      "val": 79,
+      "trend": 31,
       "risk": 47,
       "weights": 4,
       "financial": false,
@@ -1285,28 +1233,28 @@
         ]
       },
       "stats": {
-        "pos": 12.7,
-        "last": 4.46,
-        "ma20": 4.8,
-        "ma60": 5.45,
+        "pos": 13.3,
+        "last": 4.5,
+        "ma20": 4.76,
+        "ma60": 5.42,
         "high": 9.5,
         "low": 3.73,
         "highDate": "2026-07-02",
         "lowDate": "2025-11-24",
         "count": 250,
-        "ret20": -16.3,
-        "ret60": -26.5,
-        "vol": 40.8,
+        "ret20": -15.9,
+        "ret60": -23.6,
+        "vol": 40.6,
         "mdd": -52.3
       },
-      "dividendYield": 1.26
+      "dividendYield": 1.24
     },
     "002304": {
       "name": "洋河股份",
       "total": 63,
       "base": 57,
       "val": 86,
-      "trend": 43,
+      "trend": 42,
       "risk": 64,
       "weights": 4,
       "financial": false,
@@ -1332,28 +1280,69 @@
         ]
       },
       "stats": {
-        "pos": 7.3,
-        "last": 37.41,
+        "pos": 6.8,
+        "last": 37.24,
         "ma20": 37.5,
-        "ma60": 38.41,
+        "ma60": 38.34,
         "high": 70.52,
         "low": 34.81,
         "highDate": "2025-11-10",
         "lowDate": "2026-10-30",
         "count": 250,
-        "ret20": -0.2,
-        "ret60": -8.4,
-        "vol": 21.6,
+        "ret20": -0.1,
+        "ret60": -10.4,
+        "vol": 21.3,
         "mdd": -48.2
       },
-      "dividendYield": 3.93
+      "dividendYield": 3.95
+    },
+    "000651": {
+      "name": "格力电器",
+      "total": 76,
+      "base": null,
+      "val": 79,
+      "trend": 62,
+      "risk": 93,
+      "weights": 3,
+      "financial": false,
+      "keys": {
+        "val": [
+          "pe",
+          "pb",
+          "pos"
+        ],
+        "trend": [
+          "ma",
+          "ret"
+        ],
+        "risk": [
+          "vol",
+          "mdd"
+        ]
+      },
+      "stats": {
+        "pos": 77.8,
+        "last": 39.1,
+        "ma20": 38.45,
+        "ma60": 38.6,
+        "high": 40.48,
+        "low": 34.27,
+        "highDate": "2026-07-30",
+        "lowDate": "2026-06-22",
+        "count": 250,
+        "ret20": -1.3,
+        "ret60": 1.1,
+        "vol": 18.2,
+        "mdd": -9.7
+      },
+      "dividendYield": 7.67
     },
     "002027": {
       "name": "分众传媒",
       "total": 83,
       "base": 93,
       "val": 80,
-      "trend": 75,
+      "trend": 76,
       "risk": 66,
       "weights": 4,
       "financial": false,
@@ -1379,21 +1368,21 @@
         ]
       },
       "stats": {
-        "pos": 31.2,
-        "last": 5.55,
-        "ma20": 5.27,
-        "ma60": 5,
+        "pos": 33.7,
+        "last": 5.64,
+        "ma20": 5.3,
+        "ma60": 5.01,
         "high": 8.08,
         "low": 4.4,
         "highDate": "2026-01-13",
         "lowDate": "2026-06-29",
         "count": 250,
-        "ret20": 8.8,
-        "ret60": 9,
-        "vol": 25.6,
+        "ret20": 10.6,
+        "ret60": 7.6,
+        "vol": 25.2,
         "mdd": -42.1
       },
-      "dividendYield": 5.23
+      "dividendYield": 5.14
     }
   }
 }
