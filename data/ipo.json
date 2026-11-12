@@ -1,8 +1,20 @@
 {
-  "date": "2026-11-11",
-  "generatedAt": "2026-11-11 19:47",
+  "date": "2026-11-12",
+  "generatedAt": "2026-11-12 20:32",
   "source": "东方财富新股申购报表（交易所公布排期）",
   "upcoming": [
+    {
+      "code": "688845",
+      "name": "傲拓科技",
+      "board": "star",
+      "market": "科创板",
+      "price": null,
+      "pe": null,
+      "applyDate": "2026-11-23",
+      "listDate": "",
+      "ballotDate": "2026-11-25",
+      "lots": 9062000
+    },
     {
       "code": "920067",
       "name": "华晟智能",
@@ -88,18 +100,6 @@
       "listDate": "2026-10-23",
       "ballotDate": "2026-10-19",
       "lots": 18000000
-    },
-    {
-      "code": "301718",
-      "name": "通则康威",
-      "board": "gem",
-      "market": "创业板注册制",
-      "price": 26.88,
-      "pe": 44.72,
-      "applyDate": "2026-10-09",
-      "listDate": "2026-10-22",
-      "ballotDate": "2026-10-13",
-      "lots": 17678000
     }
   ]
 }
