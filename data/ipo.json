@@ -1,6 +1,6 @@
 {
-  "date": "2026-11-12",
-  "generatedAt": "2026-11-12 20:32",
+  "date": "2026-11-13",
+  "generatedAt": "2026-11-13 20:04",
   "source": "东方财富新股申购报表（交易所公布排期）",
   "upcoming": [
     {
@@ -25,19 +25,7 @@
       "applyDate": "2026-11-11",
       "listDate": "",
       "ballotDate": "2026-11-16",
-      "lots": 11666667
-    },
-    {
-      "code": "920309",
-      "name": "菊乐股份",
-      "board": "bse",
-      "market": "北交所",
-      "price": 31.92,
-      "pe": 11.99,
-      "applyDate": "2026-11-04",
-      "listDate": "",
-      "ballotDate": "2026-11-09",
-      "lots": 9994079
+      "lots": 14166667
     }
   ],
   "recent": [
@@ -88,18 +76,6 @@
       "listDate": "2026-10-29",
       "ballotDate": "2026-10-23",
       "lots": 36380000
-    },
-    {
-      "code": "920285",
-      "name": "远大健科",
-      "board": "bse",
-      "market": "北交所",
-      "price": 20.3,
-      "pe": 12,
-      "applyDate": "2026-10-14",
-      "listDate": "2026-10-23",
-      "ballotDate": "2026-10-19",
-      "lots": 18000000
     }
   ]
 }
