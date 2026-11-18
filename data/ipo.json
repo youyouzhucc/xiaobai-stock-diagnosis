@@ -1,8 +1,32 @@
 {
-  "date": "2026-11-13",
-  "generatedAt": "2026-11-13 20:04",
+  "date": "2026-11-18",
+  "generatedAt": "2026-11-18 20:56",
   "source": "东方财富新股申购报表（交易所公布排期）",
   "upcoming": [
+    {
+      "code": "301661",
+      "name": "猎奇智能",
+      "board": "sz",
+      "market": "深交所其他",
+      "price": null,
+      "pe": null,
+      "applyDate": "2026-11-26",
+      "listDate": "",
+      "ballotDate": "2026-11-30",
+      "lots": 2887500
+    },
+    {
+      "code": "920319",
+      "name": "天广实",
+      "board": "bse",
+      "market": "北交所",
+      "price": null,
+      "pe": null,
+      "applyDate": "2026-11-25",
+      "listDate": "",
+      "ballotDate": "2026-11-30",
+      "lots": 1317400
+    },
     {
       "code": "688845",
       "name": "傲拓科技",
@@ -29,6 +53,18 @@
     }
   ],
   "recent": [
+    {
+      "code": "920309",
+      "name": "菊乐股份",
+      "board": "bse",
+      "market": "北交所",
+      "price": 31.92,
+      "pe": 11.99,
+      "applyDate": "2026-11-04",
+      "listDate": "2026-11-17",
+      "ballotDate": "2026-11-09",
+      "lots": 9994079
+    },
     {
       "code": "688827",
       "name": "钶锐锶",
