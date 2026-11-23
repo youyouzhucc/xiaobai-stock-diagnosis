@@ -1,6 +1,6 @@
 {
-  "date": "2026-11-20",
-  "generatedAt": "2026-11-20 20:43",
+  "date": "2026-11-23",
+  "generatedAt": "2026-11-23 22:24",
   "source": "东方财富新股申购报表（交易所公布排期）",
   "upcoming": [
     {
@@ -20,7 +20,7 @@
       "name": "天广实",
       "board": "bse",
       "market": "北交所",
-      "price": null,
+      "price": 55.65,
       "pe": null,
       "applyDate": "2026-11-25",
       "listDate": "",
@@ -37,10 +37,22 @@
       "applyDate": "2026-11-23",
       "listDate": "",
       "ballotDate": "2026-11-25",
-      "lots": 9062000
+      "lots": 12083000
     }
   ],
   "recent": [
+    {
+      "code": "920067",
+      "name": "华晟智能",
+      "board": "bse",
+      "market": "北交所",
+      "price": 23.52,
+      "pe": 13.88,
+      "applyDate": "2026-11-11",
+      "listDate": "2026-11-23",
+      "ballotDate": "2026-11-16",
+      "lots": 14166667
+    },
     {
       "code": "920309",
       "name": "菊乐股份",
